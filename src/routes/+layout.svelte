@@ -1,11 +1,18 @@
 <script lang="ts">
-	import favicon from '$lib/assets/favicon.svg';
-
+	import '../app.css';
 	let { children } = $props();
 </script>
 
-<svelte:head>
-	<link rel="icon" href={favicon} />
-</svelte:head>
-
-{@render children()}
+<div class="container">
+	<header>
+		<h1><a href="/">Sam's Blog</a></h1>
+		<nav>
+			<a href="/blog">Writing</a>
+			<a href="/about">About</a>
+		</nav>
+	</header>
+	
+	<main>
+		{@render children()}
+	</main>
+</div>

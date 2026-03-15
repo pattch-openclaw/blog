@@ -1,0 +1,84 @@
+:root {
+	--bg-color: #fafafa;
+	--text-color: #333333;
+	--link-color: #0070f3;
+	--border-color: #eaeaea;
+	--max-width: 800px;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg-color: #111111;
+		--text-color: #ededed;
+		--link-color: #3291ff;
+		--border-color: #333333;
+	}
+}
+
+body {
+	background-color: var(--bg-color);
+	color: var(--text-color);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	line-height: 1.6;
+	margin: 0;
+	padding: 0;
+}
+
+a {
+	color: var(--link-color);
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+.container {
+	max-width: var(--max-width);
+	margin: 0 auto;
+	padding: 2rem 1rem;
+}
+
+header {
+	border-bottom: 1px solid var(--border-color);
+	margin-bottom: 2rem;
+	padding-bottom: 1rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+}
+
+nav {
+	display: flex;
+	gap: 1.5rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	margin-top: 2rem;
+	margin-bottom: 1rem;
+	line-height: 1.2;
+}
+
+p {
+	margin-bottom: 1rem;
+}
+
+code {
+	background: rgba(128, 128, 128, 0.1);
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+	font-size: 0.9em;
+}
+
+pre {
+	background: rgba(128, 128, 128, 0.1);
+	padding: 1rem;
+	border-radius: 6px;
+	overflow-x: auto;
+}
+
+pre code {
+	background: none;
+	padding: 0;
+}
