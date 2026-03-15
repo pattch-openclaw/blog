@@ -16,6 +16,7 @@ This repository contains the source code for my personal blog. It serves as a pl
    ```bash
    npm run dev
    ```
+   *Note: In local dev, all drafts (`published: false`) will be visible because `SHOW_DRAFTS` evaluates to `true` by default when undefined in dev.*
 
 3. Open `http://localhost:5173` in your browser.
 
@@ -23,26 +24,22 @@ This repository contains the source code for my personal blog. It serves as a pl
 
 This blog is configured to be self-hosted using `@sveltejs/adapter-node`, deployed via a GitHub Actions Self-Hosted Runner, managed by PM2, and served securely via Cloudflare Tunnels.
 
-### Prerequisites (On your home server)
-1. **Node.js** (v18+)
-2. **PM2** installed globally (`npm install -g pm2`)
-3. **cloudflared** installed
+### The Dual-Environment Architecture
+We run two lightweight production instances concurrently using PM2:
+* **Production (`sams-blog-prod`)**: Runs on `Port 3000`. Environment variable `SHOW_DRAFTS=false`. Any markdown file with `published: false` in the frontmatter returns a 404.
+* **Staging (`sams-blog-staging`)**: Runs on `Port 3001`. Environment variable `SHOW_DRAFTS=true`. Drafts are fully visible here to preview exactly how they look.
 
 ### Step 1: Set Up the GitHub Actions Self-Hosted Runner
 1. Go to this repository on GitHub -> **Settings** -> **Actions** -> **Runners**.
 2. Click **New self-hosted runner**.
-3. Select the OS and Architecture of your home server.
-4. SSH into your home server, download the runner, and configure it using the commands GitHub provides.
-5. Run the installation as a background service: 
+3. Install the runner on your home server and run the installation as a background service: 
    ```bash
    sudo ./svc.sh install
    sudo ./svc.sh start
    ```
 
 ### Step 2: Configure PM2
-We use an `ecosystem.config.cjs` file in this repository. Once the runner pulls the code for the first time, PM2 will manage the SvelteKit node process.
-
-Start the app for the first time manually (after running `npm install` and `npm run build`):
+Once the runner pulls the code, PM2 will manage the SvelteKit node processes. Start the apps for the first time manually:
 ```bash
 pm2 start ecosystem.config.cjs
 pm2 save
@@ -50,14 +47,15 @@ pm2 startup # Follow the instructions it outputs to run PM2 on boot
 ```
 
 ### Step 3: Serve Externally with Cloudflare Tunnels
-Cloudflare Tunnels expose your local PM2 service (running on port 3000) securely without opening router ports.
+Cloudflare Tunnels expose your local PM2 services securely.
 
-1. Go to your Cloudflare Dashboard -> **Zero Trust** -> **Networks** -> **Tunnels**.
-2. Click **Create a tunnel**. Name it (e.g., `sams-blog`).
-3. Follow the instructions to install the connector on your home server.
-4. Route the traffic:
-   - **Public Hostname**: `blog.yourdomain.com` (or whatever domain you have configured).
-   - **Service**: `http://localhost:3000` (The default port for adapter-node).
-5. Save the tunnel. Your blog is now live to the world with automatic SSL.
+1. Create a tunnel in the Cloudflare Dashboard.
+2. Route the Production traffic:
+   - **Public Hostname**: `blog.yourdomain.com` 
+   - **Service**: `http://localhost:3000`
+3. Route the Staging traffic (Optional but recommended):
+   - **Public Hostname**: `drafts.yourdomain.com` 
+   - **Service**: `http://localhost:3001`
+   - **Security**: Put this staging domain behind **Cloudflare Access** so only your authenticated email can view it!
 
-Every time a commit is pushed to the `main` branch, the self-hosted runner will automatically pull the changes, rebuild the site, and restart the PM2 instance seamlessly!
+Every time a commit is pushed to the `main` branch, the self-hosted runner will automatically rebuild the site and reload both PM2 instances seamlessly!
