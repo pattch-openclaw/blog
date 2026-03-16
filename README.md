@@ -20,6 +20,31 @@ This repository contains the source code for my personal blog. It serves as a pl
 
 3. Open `http://localhost:5173` in your browser.
 
+## Testing Strategy
+
+This repository relies on automated testing to ensure the blog's UI and markdown logic don't break during deployments. 
+
+The stack includes:
+* **Vitest**: Used for unit tests, parsing the Markdown frontmatter correctly, and checking data loaders.
+* **Playwright**: Used for End-to-End (E2E) UI testing, validating the 404 pages, layout integrity, and Visual Regression (Screendiff) testing for the homepage.
+* **Husky Git Hooks**: Automatically runs `npm run test` before every `git push`.
+* **CI/CD Pipeline**: Tests run a second time securely on the home server. If any test fails on `main`, the deployment halts and PM2 is not reloaded.
+
+### Running Tests
+To manually run the test suite:
+```bash
+npm run test
+```
+
+### Approving Screendiff Changes
+If you intentionally modify the visual design of the homepage, the pre-push hook will block your commit because the Playwright visual regression snapshot will mismatch.
+
+To update the baseline snapshot to match your new changes, run:
+```bash
+npx playwright test --update-snapshots
+```
+Then, commit the updated snapshot file inside the `tests/` directory alongside your code.
+
 ## Self-Hosting Deployment Guide
 
 This blog is configured to be self-hosted using `@sveltejs/adapter-node`, deployed via a GitHub Actions Self-Hosted Runner, managed by PM2, and served securely via Cloudflare Tunnels.
