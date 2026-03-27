@@ -2,7 +2,7 @@
 title: "Test"
 date: 2026-03-27
 description: "This is a test post"
-published: false
+published: true
 ---
 
 # Title
