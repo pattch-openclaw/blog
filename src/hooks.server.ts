@@ -3,6 +3,13 @@ import { getPosts } from '$lib/server/posts';
 import { env } from '$env/dynamic/private';
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// Block access to the admin console in production
+	if (event.url.pathname.startsWith('/admin')) {
+		if (env.SHOW_DRAFTS !== 'true') {
+			throw error(404, 'Not found');
+		}
+	}
+
 	// If the user tries to access a specific blog post
 	if (event.url.pathname.startsWith('/blog/') && event.url.pathname !== '/blog') {
 		const slug = event.url.pathname.split('/')[2];
