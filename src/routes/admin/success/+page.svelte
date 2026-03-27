@@ -3,14 +3,18 @@
 
 	let slug = $page.url.searchParams.get('slug') || '';
 	let action = $page.url.searchParams.get('action') || 'draft';
-	let titleText = action === 'published' ? '🚀 Post Published & Pushed' : '🚀 Draft Saved & Pushed';
-	let subtitleText = action === 'published' 
-		? 'Your post was published and automatically pushed to the GitHub repository.' 
-		: 'Your new post was written to the filesystem and automatically pushed to the GitHub repository.';
+	
+	let titleText = '🚀 Draft Saved & Pushed';
+	if (action === 'published') titleText = '🚀 Post Published & Pushed';
+	if (action === 'unpublished') titleText = '🔒 Post Reverted to Draft';
+
+	let subtitleText = 'Your new post was written to the filesystem and automatically pushed to the GitHub repository.';
+	if (action === 'published') subtitleText = 'Your post was published and automatically pushed to the GitHub repository.';
+	if (action === 'unpublished') subtitleText = 'Your post is now hidden in production and the update was pushed to the GitHub repository.';
 </script>
 
 <svelte:head>
-	<title>{action === 'published' ? 'Post Published' : 'Draft Saved'} | Admin</title>
+	<title>{action === 'published' ? 'Post Published' : action === 'unpublished' ? 'Post Reverted' : 'Draft Saved'} | Admin</title>
 </svelte:head>
 
 <div class="success-container">

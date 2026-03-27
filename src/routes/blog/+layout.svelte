@@ -9,11 +9,18 @@
 		<nav class="post-header">
 			<a href="/blog" class="back-link">← Back to posts</a>
 			
-			{#if data.showAdminControls && data.isDraft}
-				<form action="/admin?/publish" method="POST" use:enhance class="publish-form">
-					<input type="hidden" name="slug" value={data.currentSlug} />
-					<button type="submit" class="btn-publish">🚀 Publish Draft</button>
-				</form>
+			{#if data.showAdminControls}
+				{#if data.isDraft}
+					<form action="/admin?/publish" method="POST" use:enhance class="publish-form">
+						<input type="hidden" name="slug" value={data.currentSlug} />
+						<button type="submit" class="btn-publish">🚀 Publish Draft</button>
+					</form>
+				{:else}
+					<form action="/admin?/unpublish" method="POST" use:enhance class="publish-form">
+						<input type="hidden" name="slug" value={data.currentSlug} />
+						<button type="submit" class="btn-unpublish">🔒 Revert to Draft</button>
+					</form>
+				{/if}
 			{/if}
 		</nav>
 		
@@ -54,9 +61,7 @@
 		margin: 0;
 	}
 
-	.btn-publish {
-		background: #10b981;
-		color: #fff;
+	.btn-publish, .btn-unpublish {
 		border: none;
 		padding: 0.5rem 1rem;
 		border-radius: 6px;
@@ -66,7 +71,17 @@
 		transition: opacity 0.2s ease;
 	}
 
-	.btn-publish:hover {
+	.btn-publish {
+		background: #10b981;
+		color: #fff;
+	}
+
+	.btn-unpublish {
+		background: #f59e0b;
+		color: #fff;
+	}
+
+	.btn-publish:hover, .btn-unpublish:hover {
 		opacity: 0.9;
 	}
 
