@@ -2,19 +2,24 @@
 	import { page } from '$app/stores';
 
 	let slug = $page.url.searchParams.get('slug') || '';
+	let action = $page.url.searchParams.get('action') || 'draft';
+	let titleText = action === 'published' ? '🚀 Post Published & Pushed' : '🚀 Draft Saved & Pushed';
+	let subtitleText = action === 'published' 
+		? 'Your post was published and automatically pushed to the GitHub repository.' 
+		: 'Your new post was written to the filesystem and automatically pushed to the GitHub repository.';
 </script>
 
 <svelte:head>
-	<title>Draft Saved | Admin</title>
+	<title>{action === 'published' ? 'Post Published' : 'Draft Saved'} | Admin</title>
 </svelte:head>
 
 <div class="success-container">
-	<h1>🚀 Draft Saved & Pushed</h1>
-	<p class="subtitle">Your new post was written to the filesystem and automatically pushed to the GitHub repository.</p>
+	<h1>{titleText}</h1>
+	<p class="subtitle">{subtitleText}</p>
 
 	<div class="rebuild-banner">
 		<p><strong>CI/CD Pipeline is Rebuilding</strong></p>
-		<p>Because SvelteKit compiles markdown files as static routes at build time, the staging server needs to pull and rebuild to serve the new URL.</p>
+		<p>Because SvelteKit compiles markdown files as static routes at build time, the server needs to pull and rebuild to serve the new status.</p>
 		<p>It usually takes about 20-30 seconds. Your post will be available at:</p>
 		<a href="/blog/{slug}" class="btn-primary">Go to /blog/{slug}</a>
 	</div>

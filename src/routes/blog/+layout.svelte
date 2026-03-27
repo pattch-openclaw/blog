@@ -1,17 +1,20 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	let { children } = $props();
-
-	// Check if we're on a specific blog post, rather than the blog index
-	$effect(() => {
-		// Just to watch url
-	});
+	import { enhance } from '$app/forms';
+	let { data, children } = $props();
 </script>
 
 {#if $page.url.pathname !== '/blog'}
 	<div class="post-layout">
-		<nav class="back-link">
-			<a href="/blog">← Back to posts</a>
+		<nav class="post-header">
+			<a href="/blog" class="back-link">← Back to posts</a>
+			
+			{#if data.showAdminControls && data.isDraft}
+				<form action="/admin?/publish" method="POST" use:enhance class="publish-form">
+					<input type="hidden" name="slug" value={data.currentSlug} />
+					<button type="submit" class="btn-publish">🚀 Publish Draft</button>
+				</form>
+			{/if}
 		</nav>
 		
 		<article class="prose">
@@ -27,11 +30,14 @@
 		margin-top: 2rem;
 	}
 
-	.back-link {
+	.post-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
 		margin-bottom: 2rem;
 	}
 
-	.back-link a {
+	.back-link {
 		color: var(--text-color);
 		opacity: 0.6;
 		font-size: 0.9rem;
@@ -39,9 +45,29 @@
 		transition: opacity 0.2s ease;
 	}
 
-	.back-link a:hover {
+	.back-link:hover {
 		opacity: 1;
 		text-decoration: underline;
+	}
+
+	.publish-form {
+		margin: 0;
+	}
+
+	.btn-publish {
+		background: #10b981;
+		color: #fff;
+		border: none;
+		padding: 0.5rem 1rem;
+		border-radius: 6px;
+		font-weight: 600;
+		font-size: 0.9rem;
+		cursor: pointer;
+		transition: opacity 0.2s ease;
+	}
+
+	.btn-publish:hover {
+		opacity: 0.9;
 	}
 
 	.prose {
