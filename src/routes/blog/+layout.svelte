@@ -2,6 +2,21 @@
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
 	let { data, children } = $props();
+
+	let pending = $state(false);
+	let successMessage = $state('');
+
+	const handleEnhance = () => {
+		pending = true;
+		return async ({ result }) => {
+			pending = false;
+			if (result.type === 'success') {
+				successMessage = result.data?.action === 'published' 
+					? '🚀 Published! Pipeline rebuilding...'
+					: '🔒 Reverted! Pipeline rebuilding...';
+			}
+		};
+	};
 </script>
 
 {#if $page.url.pathname !== '/blog'}
@@ -10,13 +25,17 @@
 			<a href="/blog" class="back-link">← Back to posts</a>
 			
 			{#if data.showAdminControls}
-				{#if data.isDraft}
-					<form action="/admin?/publish" method="POST" use:enhance class="publish-form">
+				{#if successMessage}
+					<div class="status-toast success">{successMessage}</div>
+				{:else if pending}
+					<div class="status-toast">Saving...</div>
+				{:else if data.isDraft}
+					<form action="/admin?/publish" method="POST" use:enhance={handleEnhance} class="publish-form">
 						<input type="hidden" name="slug" value={data.currentSlug} />
 						<button type="submit" class="btn-publish">🚀 Publish Draft</button>
 					</form>
 				{:else}
-					<form action="/admin?/unpublish" method="POST" use:enhance class="publish-form">
+					<form action="/admin?/unpublish" method="POST" use:enhance={handleEnhance} class="publish-form">
 						<input type="hidden" name="slug" value={data.currentSlug} />
 						<button type="submit" class="btn-unpublish">🔒 Revert to Draft</button>
 					</form>
@@ -55,6 +74,20 @@
 	.back-link:hover {
 		opacity: 1;
 		text-decoration: underline;
+	}
+
+	.status-toast {
+		padding: 0.5rem 1rem;
+		border-radius: 6px;
+		font-weight: 600;
+		font-size: 0.9rem;
+		background: var(--border-color);
+		color: var(--text-color);
+	}
+
+	.status-toast.success {
+		background: #10b981;
+		color: #fff;
 	}
 
 	.publish-form {

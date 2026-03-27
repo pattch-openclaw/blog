@@ -1,4 +1,4 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import fs from 'fs/promises';
 import path from 'path';
 import { exec } from 'child_process';
@@ -24,13 +24,18 @@ export const actions = {
 			
 			await execAsync(`git add "src/routes/blog/${slug}/+page.md"`);
 			await execAsync(`git commit -m "content: publish ${slug}"`);
-			await execAsync('git push origin main');
+			
+			setTimeout(() => {
+				exec('git push origin main', (err) => {
+					if (err) console.error('Push failed:', err);
+				});
+			}, 1000);
 		} catch (e: any) {
 			console.error(e);
 			return fail(500, { error: `Failed to publish post: ${e.message}` });
 		}
 
-		throw redirect(303, `/admin/success?slug=${slug}&action=published`);
+		return { success: true, action: 'published' };
 	},
 	unpublish: async ({ request }) => {
 		const data = await request.formData();
@@ -49,12 +54,17 @@ export const actions = {
 			
 			await execAsync(`git add "src/routes/blog/${slug}/+page.md"`);
 			await execAsync(`git commit -m "content: unpublish ${slug}"`);
-			await execAsync('git push origin main');
+			
+			setTimeout(() => {
+				exec('git push origin main', (err) => {
+					if (err) console.error('Push failed:', err);
+				});
+			}, 1000);
 		} catch (e: any) {
 			console.error(e);
 			return fail(500, { error: `Failed to unpublish post: ${e.message}` });
 		}
 
-		throw redirect(303, `/admin/success?slug=${slug}&action=unpublished`);
+		return { success: true, action: 'unpublished' };
 	}
 };
