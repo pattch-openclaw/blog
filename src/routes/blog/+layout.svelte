@@ -30,10 +30,13 @@
 				{:else if pending}
 					<div class="status-toast">Saving...</div>
 				{:else if data.isDraft}
-					<form action="/admin?/publish" method="POST" use:enhance={handleEnhance} class="publish-form">
-						<input type="hidden" name="slug" value={data.currentSlug} />
-						<button type="submit" class="btn-publish">🚀 Publish Draft</button>
-					</form>
+					<div class="admin-actions">
+						<a href="/admin/write?slug={data.currentSlug}" class="btn-edit">✏️ Edit Draft</a>
+						<form action="/admin?/publish" method="POST" use:enhance={handleEnhance} class="publish-form">
+							<input type="hidden" name="slug" value={data.currentSlug} />
+							<button type="submit" class="btn-publish">🚀 Publish Draft</button>
+						</form>
+					</div>
 				{:else}
 					<form action="/admin?/unpublish" method="POST" use:enhance={handleEnhance} class="publish-form">
 						<input type="hidden" name="slug" value={data.currentSlug} />
@@ -94,14 +97,27 @@
 		margin: 0;
 	}
 
-	.btn-publish, .btn-unpublish {
+	.admin-actions {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+	}
+
+	.btn-publish, .btn-unpublish, .btn-edit {
 		border: none;
 		padding: 0.5rem 1rem;
 		border-radius: 6px;
 		font-weight: 600;
 		font-size: 0.9rem;
 		cursor: pointer;
+		text-decoration: none;
 		transition: opacity 0.2s ease;
+		display: inline-block;
+	}
+
+	.btn-edit {
+		background: #3b82f6;
+		color: #fff;
 	}
 
 	.btn-publish {
@@ -114,7 +130,7 @@
 		color: #fff;
 	}
 
-	.btn-publish:hover, .btn-unpublish:hover {
+	.btn-publish:hover, .btn-unpublish:hover, .btn-edit:hover {
 		opacity: 0.9;
 	}
 

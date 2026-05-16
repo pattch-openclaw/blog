@@ -6,6 +6,40 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+export const load = async ({ url }) => {
+	const slug = url.searchParams.get('slug');
+	if (!slug) {
+		return { title: '', slug: '', description: '', content: '', isEdit: false };
+	}
+
+	try {
+		const filePath = path.join(process.cwd(), 'src', 'routes', 'blog', slug, '+page.md');
+		const fileData = await fs.readFile(filePath, 'utf-8');
+
+		// Very basic frontmatter parsing
+		const match = fileData.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+		if (match) {
+			const frontmatter = match[1];
+			const content = match[2].replace(/^\n+/, ''); // trim leading newlines but preserve formatting
+
+			const titleMatch = frontmatter.match(/title:\s*"([^"]+)"/);
+			const descMatch = frontmatter.match(/description:\s*"([^"]+)"/);
+
+			return {
+				title: titleMatch ? titleMatch[1].replace(/\\"/g, '"') : '',
+				slug,
+				description: descMatch ? descMatch[1].replace(/\\"/g, '"') : '',
+				content,
+				isEdit: true
+			};
+		}
+	} catch (e) {
+		console.error(`Failed to load existing draft for slug: ${slug}`, e);
+	}
+
+	return { title: '', slug, description: '', content: '', isEdit: false };
+};
+
 export const actions = {
 	default: async ({ request }) => {
 		const data = await request.formData();

@@ -2,12 +2,19 @@
 	import { enhance } from '$app/forms';
 	import { marked } from 'marked';
 
-	let { form } = $props();
+	let { data, form } = $props();
 	
-	let title = $state('');
-	let slug = $derived(title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''));
+	let title = $state(data?.title || '');
+	let slug = $state(data?.slug || '');
+	
+	$effect(() => {
+		if (!data?.isEdit && title) {
+			slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+		}
+	});
 
-	let content = $state('');
+	let content = $state(data?.content || '');
+	let description = $state(data?.description || '');
 	let isPreview = $state(false);
 	let parsedContent = $derived(marked.parse(content));
 
@@ -28,7 +35,7 @@
 </script>
 
 <svelte:head>
-	<title>Write Post | Admin</title>
+	<title>{data?.isEdit ? 'Edit Post' : 'Write Post'} | Admin</title>
 </svelte:head>
 
 <div class="admin-container">
@@ -36,7 +43,7 @@
 		<a href="/blog">← Back to Blog</a>
 	</nav>
 	
-	<h1>Write a New Post</h1>
+	<h1>{data?.isEdit ? 'Edit Draft' : 'Write a New Post'}</h1>
 	<p class="subtitle">This will be saved as a draft initially. Published must be turned on later.</p>
 	
 	{#if form?.error}
@@ -64,13 +71,13 @@
 
 			<div class="form-group">
 				<label for="slug">URL Slug</label>
-				<input type="text" id="slug" name="slug" value={slug} placeholder="a-catchy-blog-title" required />
-				<small>The URL will be /blog/[slug]</small>
+				<input type="text" id="slug" name="slug" bind:value={slug} placeholder="a-catchy-blog-title" required readonly={data?.isEdit} />
+				<small>{data?.isEdit ? 'The URL slug cannot be changed while editing.' : 'The URL will be /blog/[slug]'}</small>
 			</div>
 
 			<div class="form-group">
 				<label for="description">Description</label>
-				<textarea id="description" name="description" rows="2" placeholder="A short blurb about the post..."></textarea>
+				<textarea id="description" name="description" rows="2" bind:value={description} placeholder="A short blurb about the post..."></textarea>
 			</div>
 
 			<div class="form-group">
