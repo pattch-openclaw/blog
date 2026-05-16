@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test('homepage has expected title and structure', async ({ page }) => {
+    // Inject a header to tell the server to return mocked posts for visual regression stability
+    await page.setExtraHTTPHeaders({ 'x-mock-posts': 'true' });
+    
     await page.goto('/');
 
     // Check title
