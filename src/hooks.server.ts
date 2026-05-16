@@ -1,4 +1,4 @@
-import { error, type Handle } from '@sveltejs/kit';
+import { error, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { getPosts } from '$lib/server/posts';
 import { env } from '$env/dynamic/private';
 
@@ -26,4 +26,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	return resolve(event);
+};
+
+export const handleError: HandleServerError = ({ error: err, event }) => {
+	console.error('[Global Error Hook]', err);
+
+	return {
+		message: err instanceof Error ? err.message : 'Internal Server Error',
+		stack: err instanceof Error ? err.stack : undefined
+	};
 };

@@ -19,6 +19,10 @@
 			<h2>Upload Media</h2>
 			<p>Upload images, audio, or fonts to serve directly from the repository.</p>
 		</a>
+		<a href="/admin/logs" class="card">
+			<h2>System Logs</h2>
+			<p>View application and error logs to debug issues on the staging server.</p>
+		</a>
 	</div>
 </div>
 

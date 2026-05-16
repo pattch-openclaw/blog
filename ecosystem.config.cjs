@@ -10,7 +10,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
-        SHOW_DRAFTS: 'false'
+        SHOW_DRAFTS: 'false',
+        BODY_SIZE_LIMIT: '52428800'
       }
     },
     {
@@ -23,7 +24,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
-        SHOW_DRAFTS: 'true'
+        SHOW_DRAFTS: 'true',
+        BODY_SIZE_LIMIT: '52428800'
       }
     }
   ]

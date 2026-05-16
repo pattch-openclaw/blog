@@ -8,25 +8,25 @@ const execAsync = promisify(exec);
 
 export const actions = {
     upload: async ({ request }) => {
-        const data = await request.formData();
-        const type = data.get('type')?.toString();
-        const file = data.get('file') as File;
-
-        if (!type || !['images', 'audio', 'fonts'].includes(type)) {
-            return fail(400, { error: 'Invalid media type' });
-        }
-
-        if (!file || file.size === 0) {
-            return fail(400, { error: 'No file uploaded' });
-        }
-
-        // Sanitize the filename to prevent path traversal or weird characters
-        const safeFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-        
-        const mediaDir = path.resolve('media', type);
-        const filePath = path.join(mediaDir, safeFilename);
-
         try {
+            const data = await request.formData();
+            const type = data.get('type')?.toString();
+            const file = data.get('file') as File;
+
+            if (!type || !['images', 'audio', 'fonts'].includes(type)) {
+                return fail(400, { error: 'Invalid media type' });
+            }
+
+            if (!file || file.size === 0) {
+                return fail(400, { error: 'No file uploaded' });
+            }
+
+            // Sanitize the filename to prevent path traversal or weird characters
+            const safeFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+            
+            const mediaDir = path.resolve('media', type);
+            const filePath = path.join(mediaDir, safeFilename);
+
             // Ensure the target directory exists
             await fs.mkdir(mediaDir, { recursive: true });
 
@@ -82,7 +82,7 @@ export const actions = {
             console.error('Upload or Git sync failed:', e);
             return fail(500, { 
                 error: `Upload or Git sync failed`,
-                details: e.message,
+                details: e.stack || e.message,
                 stdout: e.stdout,
                 stderr: e.stderr
             });
