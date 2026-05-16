@@ -7,7 +7,7 @@ test('homepage has expected title and structure', async ({ page }) => {
     await expect(page).toHaveTitle(/Welcome \| Sam's Blog/);
 
     // Check the h2 heading
-    await expect(page.locator('h2')).toContainText('Welcome');
+    await expect(page.locator('h2')).toContainText('Hi, I\'m Sam.');
 
     // Make sure the navigation is visible
     await expect(page.locator('nav a').first()).toBeVisible();

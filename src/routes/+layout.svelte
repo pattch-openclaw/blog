@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '../app.css';
-	let { children } = $props();
+	let { children, data } = $props();
 </script>
 
 <div class="container">
@@ -9,6 +9,9 @@
 		<nav>
 			<a href="/blog">Writing</a>
 			<a href="/about">About</a>
+			{#if data.showAdmin}
+				<a href="/admin" class="btn-admin">Admin</a>
+			{/if}
 		</nav>
 	</header>
 	

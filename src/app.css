@@ -82,3 +82,20 @@ pre code {
 	background: none;
 	padding: 0;
 }
+
+.btn-admin {
+	background-color: #ff3e00; /* Svelte orange to make it pop */
+	color: #ffffff !important;
+	padding: 0.3rem 0.8rem;
+	border-radius: 4px;
+	font-weight: bold;
+	text-transform: uppercase;
+	font-size: 0.85rem;
+	letter-spacing: 0.05em;
+	transition: background-color 0.2s;
+}
+
+.btn-admin:hover {
+	background-color: #e03600;
+	text-decoration: none;
+}
