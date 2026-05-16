@@ -22,6 +22,8 @@ body {
 	line-height: 1.6;
 	margin: 0;
 	padding: 0;
+	overflow-wrap: break-word;
+	word-wrap: break-word;
 }
 
 a {
@@ -75,7 +77,9 @@ pre {
 	background: rgba(128, 128, 128, 0.1);
 	padding: 1rem;
 	border-radius: 6px;
-	overflow-x: auto;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+	overflow-wrap: anywhere;
 }
 
 pre code {

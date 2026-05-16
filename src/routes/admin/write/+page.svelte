@@ -288,6 +288,7 @@
 			flex-direction: column;
 			max-width: 800px;
 			margin-right: auto;
+			width: 100%;
 		}
 
 		.preview-box {
@@ -323,7 +324,9 @@
 		color: #fff;
 		padding: 1rem;
 		border-radius: 6px;
-		overflow-x: auto;
+		white-space: pre-wrap;
+		word-wrap: break-word;
+		overflow-wrap: anywhere;
 		margin-bottom: 1rem;
 	}
 	.preview-box :global(code) {
