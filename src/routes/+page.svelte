@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	let { data } = $props();
 	let title = 'Welcome';
 </script>
 
@@ -12,6 +13,18 @@
 	<div class="actions">
 		<a href="/blog" class="btn btn-primary">Read my writing</a>
 		<a href="/about" class="btn btn-secondary">More about me</a>
+	</div>
+</div>
+
+<div class="recent-posts">
+	<h3>Recent Posts</h3>
+	<div class="post-list">
+		{#each data.recentPosts as post}
+			<a href="/blog/{post.slug}" class="post-btn">
+				<span class="post-title">{post.title}</span>
+				<span class="post-date">{new Date(post.date).toLocaleDateString()}</span>
+			</a>
+		{/each}
 	</div>
 </div>
 
@@ -75,5 +88,51 @@
 	
 	.btn-secondary:hover {
 		background-color: rgba(128, 128, 128, 0.1);
+	}
+
+	.recent-posts {
+		margin-top: 3rem;
+		text-align: center;
+	}
+	
+	.recent-posts h3 {
+		font-size: 1.5rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.post-list {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		max-width: 600px;
+		margin: 0 auto;
+	}
+
+	.post-btn {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1rem 1.5rem;
+		background: rgba(128, 128, 128, 0.05);
+		border-radius: 8px;
+		color: var(--text-color);
+		text-decoration: none;
+		transition: background-color 0.2s, transform 0.1s;
+		border: 1px solid var(--border-color);
+	}
+
+	.post-btn:hover {
+		background-color: rgba(128, 128, 128, 0.1);
+		transform: translateY(-2px);
+		text-decoration: none;
+	}
+
+	.post-title {
+		font-weight: 600;
+	}
+
+	.post-date {
+		font-size: 0.9rem;
+		opacity: 0.7;
 	}
 </style>
