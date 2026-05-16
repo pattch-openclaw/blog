@@ -41,123 +41,123 @@
 	<title>{data?.isEdit ? 'Edit Post' : 'Write Post'} | Admin</title>
 </svelte:head>
 
-<div class="admin-container">
-	<nav class="admin-nav">
-		<a href="/blog">← Back to Blog</a>
-	</nav>
-	
-	<h1>{data?.isEdit ? 'Edit Draft' : 'Write a New Post'}</h1>
-	<p class="subtitle">This will be saved as a draft initially. Published must be turned on later.</p>
-	
-	{#if form?.error}
-		<div class="error-banner">
-			{form.error}
-		</div>
-	{/if}
-
-	{#if isSuccess}
-		<div class="success-panel">
-			<h2>🚀 Draft Saved & Pushed!</h2>
-			<div class="rebuild-banner">
-				<p><strong>CI/CD Pipeline is Rebuilding</strong></p>
-				<p>Please wait ~20 seconds for the server to restart, then check out your post:</p>
-				<a href="/blog/{successSlug}" class="btn-primary">Go to /blog/{successSlug}</a>
+<div class="admin-container" class:wide-layout={isPreview}>
+	<div class="admin-main">
+		<nav class="admin-nav">
+			<a href="/blog">← Back to Blog</a>
+		</nav>
+		
+		<h1>{data?.isEdit ? 'Edit Draft' : 'Write a New Post'}</h1>
+		<p class="subtitle">This will be saved as a draft initially. Published must be turned on later.</p>
+		
+		{#if form?.error}
+			<div class="error-banner">
+				{form.error}
 			</div>
-			<button class="btn-secondary" onclick={() => { isSuccess = false; title = ''; }}>Write another</button>
-		</div>
-	{:else}
-		<form method="POST" use:enhance={handleEnhance} class="editor-form">
-			<div class="form-group">
-				<label for="title">Title</label>
-				<input type="text" id="title" name="title" bind:value={title} placeholder="A Catchy Blog Title" required />
-			</div>
+		{/if}
 
-			<div class="form-group">
-				<label for="slug">URL Slug</label>
-				<input type="text" id="slug" name="slug" bind:value={slug} placeholder="a-catchy-blog-title" required readonly={data?.isEdit} />
-				<small>{data?.isEdit ? 'The URL slug cannot be changed while editing.' : 'The URL will be /blog/[slug]'}</small>
+		{#if isSuccess}
+			<div class="success-panel">
+				<h2>🚀 Draft Saved & Pushed!</h2>
+				<div class="rebuild-banner">
+					<p><strong>CI/CD Pipeline is Rebuilding</strong></p>
+					<p>Please wait ~20 seconds for the server to restart, then check out your post:</p>
+					<a href="/blog/{successSlug}" class="btn-primary">Go to /blog/{successSlug}</a>
+				</div>
+				<button class="btn-secondary" onclick={() => { isSuccess = false; title = ''; }}>Write another</button>
 			</div>
+		{:else}
+			<form method="POST" use:enhance={handleEnhance} class="editor-form" class:show-preview={isPreview}>
+				<div class="form-group">
+					<label for="title">Title</label>
+					<input type="text" id="title" name="title" bind:value={title} placeholder="A Catchy Blog Title" required />
+				</div>
 
-			<div class="form-group">
-				<label for="description">Description</label>
-				<textarea id="description" name="description" rows="2" bind:value={description} placeholder="A short blurb about the post..."></textarea>
-			</div>
+				<div class="form-group">
+					<label for="slug">URL Slug</label>
+					<input type="text" id="slug" name="slug" bind:value={slug} placeholder="a-catchy-blog-title" required readonly={data?.isEdit} />
+					<small>{data?.isEdit ? 'The URL slug cannot be changed while editing.' : 'The URL will be /blog/[slug]'}</small>
+				</div>
 
-			{#if data.images && data.images.length > 0}
-				<div class="form-group image-picker-group">
-					<label for="image-picker">Insert Image</label>
-					<div class="image-picker-controls">
-						<select id="image-picker" bind:value={selectedImage}>
-							<option value="">-- Select an image to insert --</option>
-							{#each data.images as img}
-								<option value={img}>{img}</option>
-							{/each}
-						</select>
-						
+				<div class="form-group">
+					<label for="description">Description</label>
+					<textarea id="description" name="description" rows="2" bind:value={description} placeholder="A short blurb about the post..."></textarea>
+				</div>
+
+				{#if data.images && data.images.length > 0}
+					<div class="form-group image-picker-group">
+						<label for="image-picker">Insert Image</label>
+						<div class="image-picker-controls">
+							<select id="image-picker" bind:value={selectedImage}>
+								<option value="">-- Select an image to insert --</option>
+								{#each data.images as img}
+									<option value={img}>{img}</option>
+								{/each}
+							</select>
+							
+							{#if selectedImage}
+								<div class="copy-wrapper">
+									<input 
+										type="text" 
+										readonly 
+										value={imageMarkdown} 
+										class="copy-field" 
+										onclick={(e) => { 
+											e.currentTarget.select(); 
+										}} 
+									/>
+									<button 
+										type="button" 
+										class="btn-copy" 
+										onclick={() => navigator.clipboard.writeText(imageMarkdown)}
+										title="Copy markdown"
+									>
+										<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+										Copy
+									</button>
+								</div>
+							{/if}
+						</div>
 						{#if selectedImage}
-							<div class="copy-wrapper">
-								<input 
-									type="text" 
-									readonly 
-									value={imageMarkdown} 
-									class="copy-field" 
-									onclick={(e) => { 
-										e.currentTarget.select(); 
-									}} 
-								/>
-								<button 
-									type="button" 
-									class="btn-copy" 
-									onclick={() => navigator.clipboard.writeText(imageMarkdown)}
-									title="Copy markdown"
-								>
-									<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-									Copy
+							<div class="image-preview-container">
+								<button type="button" class="btn-close" onclick={() => selectedImage = ''} title="Close preview">
+									<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
 								</button>
+								<img src="/media/images/{selectedImage}" alt="Preview" class="image-preview-img" />
+								<small><em>Use the copy button above to copy the markdown, then paste into your content.</em></small>
 							</div>
 						{/if}
 					</div>
-					{#if selectedImage}
-						<div class="image-preview-container">
-							<button type="button" class="btn-close" onclick={() => selectedImage = ''} title="Close preview">
-								<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-							</button>
-							<img src="/media/images/{selectedImage}" alt="Preview" class="image-preview-img" />
-							<small><em>Use the copy button above to copy the markdown, then paste into your content.</em></small>
-						</div>
-					{/if}
-				</div>
-			{/if}
+				{/if}
 
-			<div class="form-group editor-group">
-				<div class="editor-header">
-					<label for="content">Markdown Content</label>
-					<button type="button" class="btn-toggle" onclick={() => isPreview = !isPreview}>
-						{isPreview ? 'Hide Preview' : 'Show Preview'}
+				<div class="form-group editor-group">
+					<div class="editor-header">
+						<label for="content">Markdown Content</label>
+						<button type="button" class="btn-toggle" onclick={() => isPreview = !isPreview}>
+							{isPreview ? 'Hide Preview' : 'Show Preview'}
+						</button>
+					</div>
+					
+					<textarea id="content" name="content" rows="15" bind:value={content} placeholder="# Hello World\n\nWrite your markdown here..." required></textarea>
+				</div>
+
+				<div class="form-actions">
+					<button type="submit" class="btn-primary" disabled={pending}>
+						{pending ? 'Saving & Pushing...' : 'Save Draft'}
 					</button>
 				</div>
-				
-				<div class="editor-split" class:show-preview={isPreview}>
-					<textarea id="content" name="content" rows="15" bind:value={content} placeholder="# Hello World\n\nWrite your markdown here..." required></textarea>
-					
-					{#if isPreview}
-						<div class="preview-section">
-							<div class="preview-divider mobile-only">Preview</div>
-							<div class="preview-box">
-								<!-- Use @html safely here since it's an admin context, but ideally sanitize -->
-								{@html parsedContent}
-							</div>
-						</div>
-					{/if}
-				</div>
-			</div>
+			</form>
+		{/if}
+	</div>
 
-			<div class="form-actions">
-				<button type="submit" class="btn-primary" disabled={pending}>
-					{pending ? 'Saving & Pushing...' : 'Save Draft'}
-				</button>
+	{#if isPreview && !isSuccess}
+		<div class="admin-preview">
+			<div class="preview-divider mobile-only">Preview</div>
+			<div class="preview-box">
+				<!-- Use @html safely here since it's an admin context, but ideally sanitize -->
+				{@html parsedContent}
 			</div>
-		</form>
+		</div>
 	{/if}
 </div>
 
@@ -259,41 +259,46 @@
 		background: rgba(128, 128, 128, 0.05);
 	}
 
-	.editor-split {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
+	.editor-form.show-preview textarea#content {
+		min-height: 500px;
 	}
 
 	@media (min-width: 1200px) {
-		.editor-split.show-preview {
+		.admin-container.wide-layout {
+			/* Break out of the 800px max-width wrapper by using screen width math */
+			width: calc(100vw - 4rem);
+			margin-left: calc(50% - 50vw + 2rem);
 			display: grid;
-			/* Keep the left column exactly the same max width as before (768px accounting for 1rem padding) */
-			grid-template-columns: min(100%, 768px) 1fr;
+			grid-template-columns: 1fr 1fr;
 			gap: 2rem;
-			
-			/* Break out of the centered container, filling the space to the right edge of the screen */
-			/* 50vw is the screen center. 384px is half of the max 768px container. 
-			   This extends exactly to 2rem before the right edge of the viewport. */
-			width: calc(50vw + 384px - 2rem);
+			align-items: start;
 		}
 
-		.editor-split.show-preview textarea {
-			min-height: 500px;
-			resize: vertical;
+		.admin-container.wide-layout .admin-main {
+			max-width: 800px; /* Keep the form itself readable */
+			margin-left: auto; /* Align towards center if screen is huge */
+			width: 100%;
 		}
 
-		.editor-split.show-preview .preview-section {
+		.admin-preview {
+			position: sticky;
+			top: 2rem;
+			height: calc(100vh - 4rem);
+			display: flex;
+			flex-direction: column;
+			max-width: 800px;
+			margin-right: auto;
+		}
+
+		.preview-box {
+			flex: 1;
 			overflow-y: auto;
-		}
-
-		.editor-split.show-preview .mobile-only {
-			display: none;
-		}
-
-		.editor-split.show-preview .preview-box {
-			height: 100%;
 			margin-top: 0;
+			height: 100%;
+		}
+
+		.admin-preview .mobile-only {
+			display: none;
 		}
 	}
 
