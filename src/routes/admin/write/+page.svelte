@@ -18,6 +18,9 @@
 	let isPreview = $state(false);
 	let parsedContent = $derived(marked.parse(content));
 
+	let selectedImage = $state('');
+	let imageMarkdown = $derived(selectedImage ? `![${selectedImage}](/media/images/${selectedImage})` : '');
+
 	let pending = $state(false);
 	let isSuccess = $state(false);
 	let successSlug = $state('');
@@ -79,6 +82,40 @@
 				<label for="description">Description</label>
 				<textarea id="description" name="description" rows="2" bind:value={description} placeholder="A short blurb about the post..."></textarea>
 			</div>
+
+			{#if data.images && data.images.length > 0}
+				<div class="form-group image-picker-group">
+					<label for="image-picker">Insert Image</label>
+					<div class="image-picker-controls">
+						<select id="image-picker" bind:value={selectedImage}>
+							<option value="">-- Select an image to insert --</option>
+							{#each data.images as img}
+								<option value={img}>{img}</option>
+							{/each}
+						</select>
+						
+						{#if selectedImage}
+							<input 
+								type="text" 
+								readonly 
+								value={imageMarkdown} 
+								class="copy-field" 
+								onclick={(e) => { 
+									e.currentTarget.select(); 
+									navigator.clipboard.writeText(imageMarkdown); 
+								}} 
+								title="Click to copy markdown" 
+							/>
+						{/if}
+					</div>
+					{#if selectedImage}
+						<div class="image-preview-container">
+							<img src="/media/images/{selectedImage}" alt="Preview" class="image-preview-img" />
+							<small><em>Click the markdown text above to copy, then paste into your content.</em></small>
+						</div>
+					{/if}
+				</div>
+			{/if}
 
 			<div class="form-group editor-group">
 				<div class="editor-header">
@@ -303,13 +340,60 @@
 		color: inherit;
 	}
 
-	input:focus, textarea:focus {
+	input:focus, textarea:focus, select:focus {
 		outline: 2px solid var(--link-color);
 		border-color: transparent;
 	}
 
 	small {
 		color: #666;
+	}
+
+	.image-picker-controls {
+		display: flex;
+		gap: 1rem;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+
+	.image-picker-controls select {
+		flex: 1;
+		min-width: 200px;
+		padding: 0.75rem;
+		border: 1px solid var(--border-color);
+		border-radius: 6px;
+		font-family: inherit;
+		font-size: 1rem;
+		background: transparent;
+		color: inherit;
+	}
+
+	.copy-field {
+		flex: 2;
+		background: rgba(128, 128, 128, 0.05);
+		cursor: pointer;
+		font-family: monospace;
+		font-size: 0.9rem;
+	}
+
+	.image-preview-container {
+		margin-top: 0.5rem;
+		border: 1px solid var(--border-color);
+		border-radius: 6px;
+		padding: 1rem;
+		background: rgba(128, 128, 128, 0.05);
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		align-items: flex-start;
+	}
+
+	.image-preview-img {
+		max-height: 200px;
+		max-width: 100%;
+		border-radius: 4px;
+		display: block;
+		border: 1px solid var(--border-color);
 	}
 
 	.btn-primary {

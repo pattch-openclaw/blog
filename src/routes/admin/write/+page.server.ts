@@ -8,8 +8,18 @@ const execAsync = promisify(exec);
 
 export const load = async ({ url }) => {
 	const slug = url.searchParams.get('slug');
+
+	let images: string[] = [];
+	try {
+		const mediaPath = path.join(process.cwd(), 'media', 'images');
+		const files = await fs.readdir(mediaPath);
+		images = files.filter(f => !f.startsWith('.'));
+	} catch (e) {
+		console.error('Failed to load images for picker', e);
+	}
+
 	if (!slug) {
-		return { title: '', slug: '', description: '', content: '', isEdit: false };
+		return { title: '', slug: '', description: '', content: '', isEdit: false, images };
 	}
 
 	try {
@@ -30,14 +40,15 @@ export const load = async ({ url }) => {
 				slug,
 				description: descMatch ? descMatch[1].replace(/\\"/g, '"') : '',
 				content,
-				isEdit: true
+				isEdit: true,
+				images
 			};
 		}
 	} catch (e) {
 		console.error(`Failed to load existing draft for slug: ${slug}`, e);
 	}
 
-	return { title: '', slug, description: '', content: '', isEdit: false };
+	return { title: '', slug, description: '', content: '', isEdit: false, images };
 };
 
 export const actions = {
