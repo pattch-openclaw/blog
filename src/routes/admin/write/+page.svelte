@@ -95,23 +95,35 @@
 						</select>
 						
 						{#if selectedImage}
-							<input 
-								type="text" 
-								readonly 
-								value={imageMarkdown} 
-								class="copy-field" 
-								onclick={(e) => { 
-									e.currentTarget.select(); 
-									navigator.clipboard.writeText(imageMarkdown); 
-								}} 
-								title="Click to copy markdown" 
-							/>
+							<div class="copy-wrapper">
+								<input 
+									type="text" 
+									readonly 
+									value={imageMarkdown} 
+									class="copy-field" 
+									onclick={(e) => { 
+										e.currentTarget.select(); 
+									}} 
+								/>
+								<button 
+									type="button" 
+									class="btn-copy" 
+									onclick={() => navigator.clipboard.writeText(imageMarkdown)}
+									title="Copy markdown"
+								>
+									<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+									Copy
+								</button>
+							</div>
 						{/if}
 					</div>
 					{#if selectedImage}
 						<div class="image-preview-container">
+							<button type="button" class="btn-close" onclick={() => selectedImage = ''} title="Close preview">
+								<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+							</button>
 							<img src="/media/images/{selectedImage}" alt="Preview" class="image-preview-img" />
-							<small><em>Click the markdown text above to copy, then paste into your content.</em></small>
+							<small><em>Use the copy button above to copy the markdown, then paste into your content.</em></small>
 						</div>
 					{/if}
 				</div>
@@ -368,12 +380,37 @@
 		color: inherit;
 	}
 
-	.copy-field {
+	.copy-wrapper {
+		display: flex;
 		flex: 2;
+		min-width: 300px;
+		gap: 0.5rem;
+	}
+
+	.copy-field {
+		flex: 1;
 		background: rgba(128, 128, 128, 0.05);
-		cursor: pointer;
+		cursor: text;
 		font-family: monospace;
 		font-size: 0.9rem;
+	}
+
+	.btn-copy {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		background: var(--text-color);
+		color: var(--bg-color);
+		border: none;
+		padding: 0 1rem;
+		border-radius: 6px;
+		cursor: pointer;
+		font-weight: 600;
+		font-size: 0.9rem;
+	}
+
+	.btn-copy:hover {
+		opacity: 0.9;
 	}
 
 	.image-preview-container {
@@ -386,6 +423,28 @@
 		flex-direction: column;
 		gap: 0.5rem;
 		align-items: flex-start;
+		position: relative;
+	}
+
+	.btn-close {
+		position: absolute;
+		top: 0.5rem;
+		right: 0.5rem;
+		background: rgba(128, 128, 128, 0.1);
+		border: 1px solid var(--border-color);
+		color: var(--text-color);
+		border-radius: 50%;
+		width: 30px;
+		height: 30px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		padding: 0;
+	}
+
+	.btn-close:hover {
+		background: rgba(128, 128, 128, 0.2);
 	}
 
 	.image-preview-img {
