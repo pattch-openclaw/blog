@@ -345,6 +345,11 @@
 		margin-left: 0;
 		color: #666;
 	}
+	.preview-box :global(img) {
+		max-width: 100%;
+		height: auto;
+		border-radius: 6px;
+	}
 
 	label {
 		font-weight: 600;
