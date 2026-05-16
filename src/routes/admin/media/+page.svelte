@@ -27,7 +27,22 @@
 
     {#if form?.error}
         <div class="alert error">
-            {form.error}
+            <h3>{form.error}</h3>
+            {#if form.details}
+                <p><strong>Details:</strong> {form.details}</p>
+            {/if}
+            {#if form.stdout}
+                <div class="code-block">
+                    <strong>Standard Output:</strong>
+                    <pre><code>{form.stdout}</code></pre>
+                </div>
+            {/if}
+            {#if form.stderr}
+                <div class="code-block">
+                    <strong>Standard Error:</strong>
+                    <pre><code>{form.stderr}</code></pre>
+                </div>
+            {/if}
         </div>
     {/if}
 
@@ -123,6 +138,25 @@
         background: rgba(0, 0, 0, 0.1);
         padding: 0.2rem 0.4rem;
         border-radius: 4px;
+    }
+
+    .code-block {
+        margin-top: 1rem;
+    }
+
+    .code-block pre {
+        background: rgba(0, 0, 0, 0.15);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin-top: 0.5rem;
+    }
+
+    .code-block pre code {
+        display: block;
+        background: none;
+        padding: 0;
+        margin: 0;
     }
 
     form {

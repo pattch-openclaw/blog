@@ -39,30 +39,37 @@ export const actions = {
             const relativePath = `media/${type}/${safeFilename}`;
             await execAsync(`git add "${relativePath}"`);
             
-            // Push asynchronously so we don't block the UI response while waiting for tests to pass
-            // We use setTimeout so the HTTP response finishes before Playwright spins up the browser
-            setTimeout(async () => {
-                try {
-                    await execAsync(`git config user.name "Staging Admin" && git config user.email "admin@staging.local"`);
-                    await execAsync(`git commit -m "media: add ${safeFilename}"`);
-                    const { stdout, stderr } = await execAsync('git push origin main');
-                    console.log('Push stdout:', stdout);
-                    console.log('Push stderr:', stderr);
-                } catch (err: any) {
-                    console.error('Background commit/push failed:', err.message || err);
-                    if (err.stdout) console.error('Stdout:', err.stdout);
-                    if (err.stderr) console.error('Stderr:', err.stderr);
-                }
-            }, 100);
+            // Instead of running asynchronously in the background, we will wait for it
+            // and return the raw Git output back to the UI.
+            
+            // 1. Set dummy identity for the runner
+            await execAsync(`git config user.name "Staging Admin" && git config user.email "admin@staging.local"`);
+            
+            // 2. Commit the file (runs Husky pre-commit hooks)
+            const commitResult = await execAsync(`git commit -m "media: add ${safeFilename}"`);
+            
+            // 3. Push to remote
+            const pushResult = await execAsync('git push origin main');
 
             return { 
                 success: true, 
-                path: `/media/${type}/${safeFilename}`
+                path: `/media/${type}/${safeFilename}`,
+                gitOutput: {
+                    commitStdout: commitResult.stdout,
+                    commitStderr: commitResult.stderr,
+                    pushStdout: pushResult.stdout,
+                    pushStderr: pushResult.stderr
+                }
             };
             
         } catch (e: any) {
-            console.error('Upload failed:', e);
-            return fail(500, { error: `Upload failed: ${e.message}` });
+            console.error('Upload or Git sync failed:', e);
+            return fail(500, { 
+                error: `Upload or Git sync failed`,
+                details: e.message,
+                stdout: e.stdout,
+                stderr: e.stderr
+            });
         }
     }
 };
