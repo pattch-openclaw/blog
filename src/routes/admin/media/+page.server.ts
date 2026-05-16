@@ -47,7 +47,22 @@ export const actions = {
             
             // 2. Commit the file (with --no-verify to skip Husky hooks on uploads)
             // We do this because Playwright screendiff tests frequently fail inside PM2
-            const commitResult = await execAsync(`git commit --no-verify -m "media: add ${safeFilename}"`);
+            // We also gracefully handle the case where the file is already committed or the working tree is clean
+            let commitStdout = '';
+            let commitStderr = '';
+            try {
+                const commitResult = await execAsync(`git commit --no-verify -m "media: add ${safeFilename}"`);
+                commitStdout = commitResult.stdout;
+                commitStderr = commitResult.stderr;
+            } catch (commitErr: any) {
+                // If it failed because there's "nothing to commit" (e.g. file already exists and is identical), that's fine
+                if (commitErr.stdout && commitErr.stdout.includes('nothing to commit')) {
+                    commitStdout = commitErr.stdout;
+                    console.log('File already committed or nothing to commit. Proceeding to push.');
+                } else {
+                    throw commitErr;
+                }
+            }
             
             // 3. Push to remote
             const pushResult = await execAsync('git push origin main');
@@ -56,8 +71,8 @@ export const actions = {
                 success: true, 
                 path: `/media/${type}/${safeFilename}`,
                 gitOutput: {
-                    commitStdout: commitResult.stdout,
-                    commitStderr: commitResult.stderr,
+                    commitStdout,
+                    commitStderr,
                     pushStdout: pushResult.stdout,
                     pushStderr: pushResult.stderr
                 }
