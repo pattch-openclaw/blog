@@ -15,6 +15,10 @@
 			<h2>Write a New Post</h2>
 			<p>Create a draft post, write markdown, and push it directly to the repository.</p>
 		</a>
+		<a href="/admin/media" class="card">
+			<h2>Upload Media</h2>
+			<p>Upload images, audio, or fonts to serve directly from the repository.</p>
+		</a>
 	</div>
 </div>
 
