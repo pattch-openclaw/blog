@@ -135,7 +135,7 @@
 	}
 
 	.prose {
-		max-width: 65ch;
+		max-width: 100%;
 	}
 
 	.prose :global(h1) {
