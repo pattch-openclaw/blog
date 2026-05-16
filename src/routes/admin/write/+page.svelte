@@ -76,20 +76,19 @@
 			<div class="form-group">
 				<div class="editor-header">
 					<label for="content">Markdown Content</label>
-					<div class="editor-tabs">
-						<button type="button" class="tab {isPreview ? '' : 'active'}" onclick={() => isPreview = false}>Write</button>
-						<button type="button" class="tab {isPreview ? 'active' : ''}" onclick={() => isPreview = true}>Preview</button>
-					</div>
+					<button type="button" class="btn-toggle" onclick={() => isPreview = !isPreview}>
+						{isPreview ? 'Hide Preview' : 'Show Preview'}
+					</button>
 				</div>
 				
+				<textarea id="content" name="content" rows="15" bind:value={content} placeholder="# Hello World\n\nWrite your markdown here..." required></textarea>
+				
 				{#if isPreview}
+					<div class="preview-divider">Preview</div>
 					<div class="preview-box">
 						<!-- Use @html safely here since it's an admin context, but ideally sanitize -->
 						{@html parsedContent}
 					</div>
-					<input type="hidden" name="content" value={content} />
-				{:else}
-					<textarea id="content" name="content" rows="15" bind:value={content} placeholder="# Hello World\n\nWrite your markdown here..." required></textarea>
 				{/if}
 			</div>
 
@@ -169,30 +168,28 @@
 		align-items: center;
 	}
 
-	.editor-tabs {
-		display: flex;
-		gap: 0.5rem;
+	.btn-toggle {
 		background: rgba(128, 128, 128, 0.1);
-		padding: 0.25rem;
-		border-radius: 6px;
-	}
-
-	.editor-tabs .tab {
-		background: transparent;
-		border: none;
+		border: 1px solid var(--border-color);
 		padding: 0.25rem 0.75rem;
 		border-radius: 4px;
 		font-size: 0.875rem;
 		cursor: pointer;
 		color: var(--text-color);
-		opacity: 0.7;
 	}
 
-	.editor-tabs .tab.active {
-		background: var(--bg-color);
-		opacity: 1;
-		box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-		font-weight: 500;
+	.btn-toggle:hover {
+		background: rgba(128, 128, 128, 0.2);
+	}
+
+	.preview-divider {
+		margin-top: 1rem;
+		margin-bottom: 0.5rem;
+		font-weight: 600;
+		font-size: 0.9rem;
+		color: #666;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
 	}
 
 	.preview-box {
