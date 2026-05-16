@@ -43,12 +43,15 @@ export const actions = {
             // We use setTimeout so the HTTP response finishes before Playwright spins up the browser
             setTimeout(async () => {
                 try {
+                    await execAsync(`git config user.name "Staging Admin" && git config user.email "admin@staging.local"`);
                     await execAsync(`git commit -m "media: add ${safeFilename}"`);
-                    exec('git push origin main', (err) => {
-                        if (err) console.error('Media push failed:', err);
-                    });
-                } catch (err) {
-                    console.error('Background commit failed:', err);
+                    const { stdout, stderr } = await execAsync('git push origin main');
+                    console.log('Push stdout:', stdout);
+                    console.log('Push stderr:', stderr);
+                } catch (err: any) {
+                    console.error('Background commit/push failed:', err.message || err);
+                    if (err.stdout) console.error('Stdout:', err.stdout);
+                    if (err.stderr) console.error('Stderr:', err.stderr);
                 }
             }, 100);
 
