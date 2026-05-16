@@ -38,7 +38,7 @@
 	<title>{data?.isEdit ? 'Edit Post' : 'Write Post'} | Admin</title>
 </svelte:head>
 
-<div class="admin-container" class:wide={isPreview}>
+<div class="admin-container">
 	<nav class="admin-nav">
 		<a href="/blog">← Back to Blog</a>
 	</nav>
@@ -114,13 +114,7 @@
 
 <style>
 	.admin-container {
-		max-width: 800px;
 		margin: 0 auto;
-		transition: max-width 0.3s ease;
-	}
-
-	.admin-container.wide {
-		max-width: 1400px;
 	}
 
 	.admin-nav {
@@ -222,21 +216,25 @@
 		gap: 1rem;
 	}
 
-	@media (min-width: 1024px) {
+	@media (min-width: 1200px) {
 		.editor-split.show-preview {
-			flex-direction: row;
-			align-items: stretch;
+			display: grid;
+			/* Keep the left column exactly the same max width as before (768px accounting for 1rem padding) */
+			grid-template-columns: min(100%, 768px) 1fr;
+			gap: 2rem;
+			
+			/* Break out of the centered container, filling the space to the right edge of the screen */
+			/* 50vw is the screen center. 384px is half of the max 768px container. 
+			   This extends exactly to 2rem before the right edge of the viewport. */
+			width: calc(50vw + 384px - 2rem);
 		}
 
 		.editor-split.show-preview textarea {
-			flex: 1;
 			min-height: 500px;
 			resize: vertical;
 		}
 
 		.editor-split.show-preview .preview-section {
-			flex: 1;
-			width: 50%;
 			overflow-y: auto;
 		}
 
