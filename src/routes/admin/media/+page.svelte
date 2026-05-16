@@ -29,7 +29,8 @@
         <div class="alert error">
             <h3>{form.error}</h3>
             {#if form.details}
-                <p><strong>Details:</strong> {form.details}</p>
+                <p><strong>Details:</strong></p>
+                <pre class="error-details"><code>{form.details}</code></pre>
             {/if}
             {#if form.stdout}
                 <div class="code-block">
@@ -157,6 +158,14 @@
         background: none;
         padding: 0;
         margin: 0;
+    }
+
+    .error-details {
+        background: rgba(0, 0, 0, 0.15);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+        white-space: pre-wrap;
     }
 
     form {
