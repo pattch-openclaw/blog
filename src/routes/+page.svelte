@@ -96,7 +96,10 @@
 	}
 	
 	.recent-posts h3 {
-		font-size: 1.5rem;
+		font-size: 0.9rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		opacity: 0.6;
 		margin-bottom: 1.5rem;
 	}
 
