@@ -38,14 +38,19 @@ export const actions = {
             // Commit and push the new file to Git
             const relativePath = `media/${type}/${safeFilename}`;
             await execAsync(`git add "${relativePath}"`);
-            await execAsync(`git commit -m "media: add ${safeFilename}"`);
             
-            // Push asynchronously so we don't block the UI response while waiting for remote sync
-            setTimeout(() => {
-                exec('git push origin main', (err) => {
-                    if (err) console.error('Media push failed:', err);
-                });
-            }, 1000);
+            // Push asynchronously so we don't block the UI response while waiting for tests to pass
+            // We use setTimeout so the HTTP response finishes before Playwright spins up the browser
+            setTimeout(async () => {
+                try {
+                    await execAsync(`git commit -m "media: add ${safeFilename}"`);
+                    exec('git push origin main', (err) => {
+                        if (err) console.error('Media push failed:', err);
+                    });
+                } catch (err) {
+                    console.error('Background commit failed:', err);
+                }
+            }, 100);
 
             return { 
                 success: true, 
