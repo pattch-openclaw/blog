@@ -7,6 +7,8 @@ published: false
 
 # Leagues is the best thing about OSRS
 
+![Screenshot_20260426_163814.png](/media/images/Screenshot_20260426_163814.png)
+
 Leagues is a temporary game mode in [Old School Runescape](https://oldschool.runescape.wiki/w/Leagues). The premise is a short-term, restricted game mode where you progressively unlock powerful boosts that take you from a fresh account to end game content very rapidly. The game mode typically features boosted experience rates, boosted drop chances for rare items, and some form of combat tweaks that change the way you play the game, often in broken ways.
 
 In order to unlock buffs, game regions, and further increased experience rates, you complete tasks in the game. Your route for tasks, your region selections, and your selection of buffs make each player's play through a unique experience. The process of planning and optimization is the main draw for me, and I try to plan out a route for myself that is achievable in the amount of time I can dedicate to the game during the league. 
@@ -63,11 +65,19 @@ Overall, I'm happy with my relic choices. I think the Map was a decent pick, but
 
 ## Notable events, final thoughts
 
-Getting two runecraft pets nearly back to back
+My most favorite parts of leagues 6:
+- Planning on the leagues discord leading up to the start
+- Initial plans through CG rush going so smoothly
+- Getting two runecraft pets nearly back to back
+- Getting a megarare as my first purple in ToA
+- Getting Dragon Rank
 
-Getting a megarare as my first purple in ToA
+My biggest letdowns of leagues 6:
+- Melee and range builds seemed very underwhelming this league
+- Water thorns and air mage were powerful in a way that made combat boring
+- Echo bosses weren't as interesting the second time around
+- The rumors of a "Mega Yama" really captured my attention, disappointing it wasn't real
 
-Getting Dragon Rank
+Overall, leagues continues to be some of the coolest content in the game. However, the pacts system and the healing and ammo regeneration system in this league basically meant you didn't have to actually solve many things in the game. Ironman game mode is a lot about resource constraints and a mix of gathering, processing, and being careful with your resources. Leagues 6 kind of streamlined all of that in a way that simultaneously made the game mode very easy, relaxed, and enjoyable, but also took out a lot of the challenge. To me there wasn't much skill expression to be had, but maybe that's ok.
 
-Test Edit
 
