@@ -1,1 +1,6 @@
+# Unset GitHub Actions environment variables that leak from PM2
+# This prevents Vitest from trying to write to temporary CI paths that no longer exist
+unset GITHUB_ACTIONS
+unset GITHUB_STEP_SUMMARY
+
 npm test
