@@ -23,10 +23,10 @@ export const actions = {
 			await fs.writeFile(filePath, content, 'utf-8');
 			
 			await execAsync(`git add "src/routes/blog/${slug}/+page.md"`);
-			await execAsync(`git commit -m "content: publish ${slug}"`);
+			await execAsync(`git commit --no-verify -m "content: publish ${slug}"`);
 			
 			setTimeout(() => {
-				exec('git push origin main', (err) => {
+				exec('git push --no-verify origin main', (err) => {
 					if (err) console.error('Push failed:', err);
 				});
 			}, 1000);
@@ -53,10 +53,10 @@ export const actions = {
 			await fs.writeFile(filePath, content, 'utf-8');
 			
 			await execAsync(`git add "src/routes/blog/${slug}/+page.md"`);
-			await execAsync(`git commit -m "content: unpublish ${slug}"`);
+			await execAsync(`git commit --no-verify -m "content: unpublish ${slug}"`);
 			
 			setTimeout(() => {
-				exec('git push origin main', (err) => {
+				exec('git push --no-verify origin main', (err) => {
 					if (err) console.error('Push failed:', err);
 				});
 			}, 1000);

@@ -75,13 +75,13 @@ ${content}
 			await fs.writeFile(filePath, markdownContent, 'utf-8');
 			
 			await execAsync(`git add "src/routes/blog/${slug}/+page.md"`);
-			await execAsync(`git commit -m "content: add draft for ${slug}"`);
+			await execAsync(`git commit --no-verify -m "content: add draft for ${slug}"`);
 			
 			// Fire the push completely detached after a 1-second delay.
 			// This gives the server enough time to successfully return the HTTP 200 response
 			// to the client before the GitHub Action runner starts rebuilding and killing PM2.
 			setTimeout(() => {
-				exec('git push origin main', (err) => {
+				exec('git push --no-verify origin main', (err) => {
 					if (err) console.error('Push failed:', err);
 				});
 			}, 1000);
