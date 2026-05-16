@@ -38,7 +38,7 @@
 	<title>{data?.isEdit ? 'Edit Post' : 'Write Post'} | Admin</title>
 </svelte:head>
 
-<div class="admin-container">
+<div class="admin-container" class:wide={isPreview}>
 	<nav class="admin-nav">
 		<a href="/blog">← Back to Blog</a>
 	</nav>
@@ -80,7 +80,7 @@
 				<textarea id="description" name="description" rows="2" bind:value={description} placeholder="A short blurb about the post..."></textarea>
 			</div>
 
-			<div class="form-group">
+			<div class="form-group editor-group">
 				<div class="editor-header">
 					<label for="content">Markdown Content</label>
 					<button type="button" class="btn-toggle" onclick={() => isPreview = !isPreview}>
@@ -88,15 +88,19 @@
 					</button>
 				</div>
 				
-				<textarea id="content" name="content" rows="15" bind:value={content} placeholder="# Hello World\n\nWrite your markdown here..." required></textarea>
-				
-				{#if isPreview}
-					<div class="preview-divider">Preview</div>
-					<div class="preview-box">
-						<!-- Use @html safely here since it's an admin context, but ideally sanitize -->
-						{@html parsedContent}
-					</div>
-				{/if}
+				<div class="editor-split" class:show-preview={isPreview}>
+					<textarea id="content" name="content" rows="15" bind:value={content} placeholder="# Hello World\n\nWrite your markdown here..." required></textarea>
+					
+					{#if isPreview}
+						<div class="preview-section">
+							<div class="preview-divider mobile-only">Preview</div>
+							<div class="preview-box">
+								<!-- Use @html safely here since it's an admin context, but ideally sanitize -->
+								{@html parsedContent}
+							</div>
+						</div>
+					{/if}
+				</div>
 			</div>
 
 			<div class="form-actions">
@@ -112,6 +116,11 @@
 	.admin-container {
 		max-width: 800px;
 		margin: 0 auto;
+		transition: max-width 0.3s ease;
+	}
+
+	.admin-container.wide {
+		max-width: 1400px;
 	}
 
 	.admin-nav {
@@ -205,6 +214,40 @@
 		border-radius: 6px;
 		min-height: 200px;
 		background: rgba(128, 128, 128, 0.05);
+	}
+
+	.editor-split {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	@media (min-width: 1024px) {
+		.editor-split.show-preview {
+			flex-direction: row;
+			align-items: stretch;
+		}
+
+		.editor-split.show-preview textarea {
+			flex: 1;
+			min-height: 500px;
+			resize: vertical;
+		}
+
+		.editor-split.show-preview .preview-section {
+			flex: 1;
+			width: 50%;
+			overflow-y: auto;
+		}
+
+		.editor-split.show-preview .mobile-only {
+			display: none;
+		}
+
+		.editor-split.show-preview .preview-box {
+			height: 100%;
+			margin-top: 0;
+		}
 	}
 
 	/* Simple markdown preview styles */
