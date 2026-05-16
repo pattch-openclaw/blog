@@ -1,10 +1,15 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { marked } from 'marked';
 
 	let { form } = $props();
 	
 	let title = $state('');
 	let slug = $derived(title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''));
+
+	let content = $state('');
+	let isPreview = $state(false);
+	let parsedContent = $derived(marked.parse(content));
 
 	let pending = $state(false);
 	let isSuccess = $state(false);
@@ -69,8 +74,23 @@
 			</div>
 
 			<div class="form-group">
-				<label for="content">Markdown Content</label>
-				<textarea id="content" name="content" rows="15" placeholder="# Hello World\n\nWrite your markdown here..." required></textarea>
+				<div class="editor-header">
+					<label for="content">Markdown Content</label>
+					<div class="editor-tabs">
+						<button type="button" class="tab {isPreview ? '' : 'active'}" onclick={() => isPreview = false}>Write</button>
+						<button type="button" class="tab {isPreview ? 'active' : ''}" onclick={() => isPreview = true}>Preview</button>
+					</div>
+				</div>
+				
+				{#if isPreview}
+					<div class="preview-box">
+						<!-- Use @html safely here since it's an admin context, but ideally sanitize -->
+						{@html parsedContent}
+					</div>
+					<input type="hidden" name="content" value={content} />
+				{:else}
+					<textarea id="content" name="content" rows="15" bind:value={content} placeholder="# Hello World\n\nWrite your markdown here..." required></textarea>
+				{/if}
 			</div>
 
 			<div class="form-actions">
@@ -141,6 +161,87 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+	}
+
+	.editor-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.editor-tabs {
+		display: flex;
+		gap: 0.5rem;
+		background: rgba(128, 128, 128, 0.1);
+		padding: 0.25rem;
+		border-radius: 6px;
+	}
+
+	.editor-tabs .tab {
+		background: transparent;
+		border: none;
+		padding: 0.25rem 0.75rem;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		cursor: pointer;
+		color: var(--text-color);
+		opacity: 0.7;
+	}
+
+	.editor-tabs .tab.active {
+		background: var(--bg-color);
+		opacity: 1;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+		font-weight: 500;
+	}
+
+	.preview-box {
+		padding: 1rem;
+		border: 1px solid var(--border-color);
+		border-radius: 6px;
+		min-height: 200px;
+		background: rgba(128, 128, 128, 0.05);
+	}
+
+	/* Simple markdown preview styles */
+	.preview-box :global(h1), .preview-box :global(h2), .preview-box :global(h3) {
+		margin-top: 1.5rem;
+		margin-bottom: 0.5rem;
+	}
+	.preview-box :global(h1:first-child), .preview-box :global(h2:first-child), .preview-box :global(h3:first-child) {
+		margin-top: 0;
+	}
+	.preview-box :global(p) {
+		margin-bottom: 1rem;
+		line-height: 1.6;
+	}
+	.preview-box :global(ul), .preview-box :global(ol) {
+		margin-left: 1.5rem;
+		margin-bottom: 1rem;
+	}
+	.preview-box :global(pre) {
+		background: #1e1e1e;
+		color: #fff;
+		padding: 1rem;
+		border-radius: 6px;
+		overflow-x: auto;
+		margin-bottom: 1rem;
+	}
+	.preview-box :global(code) {
+		font-family: monospace;
+		background: rgba(128,128,128,0.2);
+		padding: 0.1rem 0.3rem;
+		border-radius: 3px;
+	}
+	.preview-box :global(pre code) {
+		background: transparent;
+		padding: 0;
+	}
+	.preview-box :global(blockquote) {
+		border-left: 4px solid var(--border-color);
+		padding-left: 1rem;
+		margin-left: 0;
+		color: #666;
 	}
 
 	label {
