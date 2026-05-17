@@ -16,7 +16,7 @@ test('blog list page has expected layout and styling', async ({ page }) => {
     await expect(page.locator('.posts')).toBeVisible();
 
     // Take screenshot of the viewport
-    await expect(page).toHaveScreenshot('blog-list.png', { maxDiffPixelRatio: 0.05 });
+    await expect(page).toHaveScreenshot('blog-list.png', { maxDiffPixels: 100 });
 });
 
 test('single published blog post has expected layout', async ({ page }) => {
@@ -27,7 +27,7 @@ test('single published blog post has expected layout', async ({ page }) => {
     
     // Ensure admin controls are NOT visible on a published post (unless reverted, but mocked one is published)
     // Actually, on staging, if it's published, it shows "Revert to Draft". Let's capture the screenshot as-is.
-    await expect(page).toHaveScreenshot('blog-post-published.png', { maxDiffPixelRatio: 0.05, fullPage: true });
+    await expect(page).toHaveScreenshot('blog-post-published.png', { maxDiffPixels: 100, fullPage: true });
 });
 
 test('single draft blog post has expected layout', async ({ page }) => {
@@ -39,5 +39,5 @@ test('single draft blog post has expected layout', async ({ page }) => {
     // Ensure admin controls ARE visible on a draft post
     await expect(page.locator('.admin-actions')).toBeVisible();
     
-    await expect(page).toHaveScreenshot('blog-post-draft.png', { maxDiffPixelRatio: 0.05, fullPage: true });
+    await expect(page).toHaveScreenshot('blog-post-draft.png', { maxDiffPixels: 100, fullPage: true });
 });
