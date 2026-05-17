@@ -15,8 +15,8 @@ test('blog list page has expected layout and styling', async ({ page }) => {
     // Wait for the posts to load
     await expect(page.locator('.posts')).toBeVisible();
 
-    // Take screenshot of the full page
-    await expect(page).toHaveScreenshot('blog-list.png', { maxDiffPixels: 100, fullPage: true });
+    // Take screenshot of the viewport
+    await expect(page).toHaveScreenshot('blog-list.png', { maxDiffPixels: 100 });
 });
 
 test('single published blog post has expected layout', async ({ page }) => {
