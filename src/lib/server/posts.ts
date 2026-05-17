@@ -8,7 +8,7 @@ export async function getPosts(): Promise<Post[]> {
 		const file = paths[path];
 		const slug = path.split('/').at(-2);
 
-		if (file && typeof file === 'object' && 'metadata' in file && slug) {
+		if (file && typeof file === 'object' && 'metadata' in file && slug && !slug.startsWith('mock-')) {
 			const metadata = file.metadata as Omit<Post, 'slug' | 'published'> & { published?: boolean };
 			const post = {
 				...metadata,
