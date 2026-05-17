@@ -1,7 +1,22 @@
 import { test, expect } from '@playwright/test';
 
 test('homepage has expected title and structure', async ({ page }) => {
-    await page.goto('/');
+    // Start at a different page to force a client-side navigation to the home page
+    await page.goto('/about');
+
+    // Intercept network requests to /api/posts and return mock data
+    await page.route('**/api/posts', async route => {
+        const mockPosts = [
+            { title: 'Mocked Recent Post 1', slug: 'mock-1', date: '2026-05-16T00:00:00Z', published: true },
+            { title: 'Mocked Recent Post 2', slug: 'mock-2', date: '2026-05-15T00:00:00Z', published: true },
+            { title: 'Mocked Recent Post 3', slug: 'mock-3', date: '2026-05-14T00:00:00Z', published: true }
+        ];
+        await route.fulfill({ json: mockPosts });
+    });
+
+    // Navigate client-side to trigger the mocked fetch
+    await page.locator('header h1 a').click();
+    await page.locator('header h1 a').blur();
 
     // Check title
     await expect(page).toHaveTitle(/Welcome \| Sam's Blog/);
@@ -11,28 +26,6 @@ test('homepage has expected title and structure', async ({ page }) => {
 
     // Make sure the navigation is visible
     await expect(page.locator('nav a').first()).toBeVisible();
-
-    // Dynamically mock the recent posts list so the screenshot diff is completely isolated
-    // from whatever real posts exist in the production database/filesystem.
-    await page.evaluate(() => {
-        const postList = document.querySelector('.post-list');
-        if (postList) {
-            postList.innerHTML = `
-                <a href="/blog/mock-1" class="post-btn">
-                    <span class="post-title">Mocked Recent Post 1</span>
-                    <span class="post-date">May 16, 2026</span>
-                </a>
-                <a href="/blog/mock-2" class="post-btn">
-                    <span class="post-title">Mocked Recent Post 2</span>
-                    <span class="post-date">May 15, 2026</span>
-                </a>
-                <a href="/blog/mock-3" class="post-btn">
-                    <span class="post-title">Mocked Recent Post 3</span>
-                    <span class="post-date">May 14, 2026</span>
-                </a>
-            `;
-        }
-    });
 
     // Check visual regression / screendiff test
     // Note: To update the baseline image when you make changes, run `npx playwright test --update-snapshots`
