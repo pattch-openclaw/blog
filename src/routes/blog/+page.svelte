@@ -13,7 +13,7 @@
 	{#each data.posts as post}
 		<li class:is-draft={!post.published}>
 			<div class="post-meta">
-				<span class="date">{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+				<span class="date">{new Date(post.date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' })}</span>
 				{#if !post.published}
 					<span class="draft-badge">📝 Draft</span>
 				{/if}

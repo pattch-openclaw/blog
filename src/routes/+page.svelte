@@ -22,7 +22,7 @@
 		{#each data.recentPosts as post}
 			<a href="/blog/{post.slug}" class="post-btn">
 				<span class="post-title">{post.title}</span>
-				<span class="post-date">{new Date(post.date).toLocaleDateString()}</span>
+				<span class="post-date">{new Date(post.date).toLocaleDateString('en-US', { timeZone: 'UTC' })}</span>
 			</a>
 		{/each}
 	</div>
