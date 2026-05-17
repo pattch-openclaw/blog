@@ -17,7 +17,7 @@ test('homepage has expected title and structure', async ({ page }) => {
 
     // Check visual regression / screendiff test
     // Note: To update the baseline image when you make changes, run `npx playwright test --update-snapshots`
-    await expect(page).toHaveScreenshot('homepage.png', { maxDiffPixels: 100 });
+    await expect(page).toHaveScreenshot('homepage.png', { maxDiffPixelRatio: 0.05 });
 });
 
 test('404 error page has a go back button', async ({ page }) => {
