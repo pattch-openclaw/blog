@@ -1,9 +1,6 @@
 import { test, expect } from '@playwright/test';
 
 test('homepage has expected title and structure', async ({ page }) => {
-    // Inject a header to tell the server to return mocked posts for visual regression stability
-    await page.setExtraHTTPHeaders({ 'x-mock-posts': 'true' });
-    
     await page.goto('/');
 
     // Check title
@@ -14,6 +11,28 @@ test('homepage has expected title and structure', async ({ page }) => {
 
     // Make sure the navigation is visible
     await expect(page.locator('nav a').first()).toBeVisible();
+
+    // Dynamically mock the recent posts list so the screenshot diff is completely isolated
+    // from whatever real posts exist in the production database/filesystem.
+    await page.evaluate(() => {
+        const postList = document.querySelector('.post-list');
+        if (postList) {
+            postList.innerHTML = `
+                <a href="/blog/mock-1" class="post-btn">
+                    <span class="post-title">Mocked Recent Post 1</span>
+                    <span class="post-date">May 16, 2026</span>
+                </a>
+                <a href="/blog/mock-2" class="post-btn">
+                    <span class="post-title">Mocked Recent Post 2</span>
+                    <span class="post-date">May 15, 2026</span>
+                </a>
+                <a href="/blog/mock-3" class="post-btn">
+                    <span class="post-title">Mocked Recent Post 3</span>
+                    <span class="post-date">May 14, 2026</span>
+                </a>
+            `;
+        }
+    });
 
     // Check visual regression / screendiff test
     // Note: To update the baseline image when you make changes, run `npx playwright test --update-snapshots`

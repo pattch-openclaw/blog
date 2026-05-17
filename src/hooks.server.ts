@@ -15,18 +15,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		const slug = event.url.pathname.split('/')[2];
 		
 		if (slug) {
-			const isTestEnvironment = event.request.headers.get('x-playwright-test') === 'true';
-
-			// Prevent access to mock posts in production
-			if (slug.startsWith('mock-') && !isTestEnvironment && env.SHOW_DRAFTS !== 'true') {
-				throw error(404, 'Post not found');
-			}
-
 			const posts = await getPosts();
 			const post = posts.find((p) => p.slug === slug);
 			
 			// If the post is marked as a draft and we aren't in the staging environment, block it
-			if (post && !post.published && !isTestEnvironment && env.SHOW_DRAFTS !== 'true') {
+			if (post && !post.published && env.SHOW_DRAFTS !== 'true') {
 				throw error(404, 'Post not found');
 			}
 		}

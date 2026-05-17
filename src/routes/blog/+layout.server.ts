@@ -1,9 +1,8 @@
 import { getPosts } from '$lib/server/posts';
 import { env } from '$env/dynamic/private';
 
-export async function load({ url, request }) {
-	const isTestEnvironment = request.headers.get('x-playwright-test') === 'true';
-	const showAdminControls = env.SHOW_DRAFTS === 'true' || isTestEnvironment;
+export async function load({ url }) {
+	const showAdminControls = env.SHOW_DRAFTS === 'true';
 	let isDraft = false;
 	let currentSlug = '';
 
@@ -13,11 +12,7 @@ export async function load({ url, request }) {
 			currentSlug = slug;
 			const posts = await getPosts();
 			const post = posts.find((p) => p.slug === slug);
-			
-			// If we are in a test env testing a mocked draft route
-			if (isTestEnvironment && slug === 'mock-draft') {
-				isDraft = true;
-			} else if (post && !post.published) {
+			if (post && !post.published) {
 				isDraft = true;
 			}
 		}
