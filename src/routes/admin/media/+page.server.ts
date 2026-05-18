@@ -1,10 +1,33 @@
 import { fail } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
+
+export const load: PageServerLoad = async () => {
+    const mediaDir = path.resolve('media');
+    const imageDir = path.join(mediaDir, 'images');
+    
+    if (!(await fs.stat(imageDir).catch(() => null))) {
+        return { images: [] };
+    }
+
+    const entries = await fs.readdir(imageDir, { withFileTypes: true }).catch(() => []);
+    
+    const imageExts = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp']);
+    const images = entries
+        .filter(f => f.isFile() && imageExts.has(path.extname(f.name).slice(1).toLowerCase()))
+        .map(f => ({
+            name: f.name,
+            path: `/media/images/${f.name}`,
+        }))
+        .sort((a, b) => b.name.localeCompare(a.name));
+
+    return { images };
+};
 
 export const actions = {
     upload: async ({ request }) => {

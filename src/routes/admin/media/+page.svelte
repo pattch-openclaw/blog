@@ -1,7 +1,8 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
-    let { form } = $props();
+    let { form, data } = $props();
     let uploading = $state(false);
+    let selectedImage = $state(null);
 </script>
 
 <svelte:head>
@@ -42,6 +43,26 @@
                 <div class="code-block">
                     <strong>Standard Error:</strong>
                     <pre><code>{form.stderr}</code></pre>
+                </div>
+            {/if}
+        </div>
+    {/if}
+
+    {#if data.images.length > 0}
+        <div class="gallery-section">
+            <h2 class="gallery-title">Uploaded Images ({data.images.length})</h2>
+            <div class="gallery">
+                {#each data.images as image}
+                    <div class="gallery-item {selectedImage === image.path ? 'selected' : ''}" onclick={() => selectedImage = image.path}>
+                        <img src={image.path} alt={image.name} loading="lazy" />
+                        <span class="gallery-name" title={image.name}>{image.name}</span>
+                    </div>
+                {/each}
+            </div>
+            {#if selectedImage}
+                <div class="selection-info">
+                    <span class="info-path">{selectedImage}</span>
+                    <button class="btn-copy" onclick={() => { navigator.clipboard.writeText(`![${selectedImage.split('/').pop()}](${selectedImage})`); selectedImage = null; }}>Copy Markdown</button>
                 </div>
             {/if}
         </div>
@@ -105,6 +126,96 @@
     .form-hint {
         color: #666;
         margin-bottom: 1rem;
+    }
+
+    .gallery-section {
+        margin-bottom: 2rem;
+    }
+
+    .gallery-title {
+        font-size: 1.1rem;
+        color: #444;
+        margin-bottom: 1rem;
+    }
+
+    .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .gallery-item {
+        cursor: pointer;
+        border-radius: 6px;
+        border: 2px solid transparent;
+        overflow: hidden;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .gallery-item:hover {
+        border-color: var(--link-color);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .gallery-item.selected {
+        border-color: var(--link-color);
+        box-shadow: 0 0 0 2px var(--link-color);
+    }
+
+    .gallery-item img {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .gallery-name {
+        display: block;
+        font-size: 0.7rem;
+        padding: 0.3rem 0.4rem;
+        background: rgba(0, 0, 0, 0.03);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: center;
+        color: #555;
+    }
+
+    .selection-info {
+        margin-top: 1rem;
+        padding: 0.75rem 1rem;
+        background: rgba(0, 100, 255, 0.05);
+        border: 1px solid rgba(0, 100, 255, 0.2);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .info-path {
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: #333;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .btn-copy {
+        padding: 0.4rem 0.8rem;
+        background: var(--link-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .btn-copy:hover {
+        opacity: 0.9;
     }
 
     .alert {
