@@ -110,5 +110,79 @@ export const actions = {
                 stderr: e.stderr
             });
         }
+    },
+
+    delete: async ({ request }) => {
+        const data = await request.formData();
+        const filePath = data.get('path')?.toString();
+
+        if (!filePath) {
+            return fail(400, { error: 'Missing file path' });
+        }
+
+        // Only allow image deletions for now
+        if (!filePath.startsWith('/media/images/')) {
+            return fail(400, { error: 'Only image deletions are supported' });
+        }
+
+        const filename = filePath.split('/').pop()!;
+        const mediaDir = path.resolve('media', 'images');
+        const localPath = path.join(mediaDir, filename);
+
+        // Verify the file actually exists
+        if (!(await fs.stat(localPath).catch(() => null))) {
+            return fail(404, { error: 'File not found' });
+        }
+
+        try {
+            // 1. Delete the file
+            await fs.unlink(localPath);
+
+            // 2. Set git identity
+            await execAsync(`git config user.name "Staging Admin" && git config user.email "admin@staging.local"`);
+
+            // 3. Remove from git index
+            const relativePath = `media/images/${filename}`;
+            await execAsync(`git rm --cached "${relativePath}"`);
+            
+            // 4. Commit the deletion
+            let commitStdout = '';
+            let commitStderr = '';
+            try {
+                const commitResult = await execAsync(`git commit --no-verify -m "media: delete ${filename}"`);
+                commitStdout = commitResult.stdout;
+                commitStderr = commitResult.stderr;
+            } catch (commitErr: any) {
+                // File may already be removed from index
+                if (commitErr.stdout && commitErr.stdout.includes('nothing to commit')) {
+                    commitStdout = commitErr.stdout;
+                } else {
+                    throw commitErr;
+                }
+            }
+            
+            // 5. Push to remote
+            const pushResult = await execAsync('git push --no-verify origin main');
+
+            return { 
+                success: true, 
+                deletedPath: filePath,
+                gitOutput: {
+                    commitStdout,
+                    commitStderr,
+                    pushStdout: pushResult.stdout,
+                    pushStderr: pushResult.stderr
+                }
+            };
+            
+        } catch (e: any) {
+            console.error('Delete or Git sync failed:', e);
+            return fail(500, { 
+                error: `Delete or Git sync failed`,
+                details: e.stack || e.message,
+                stdout: e.stdout,
+                stderr: e.stderr
+            });
+        }
     }
 };

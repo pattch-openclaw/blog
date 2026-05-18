@@ -3,7 +3,7 @@
     let { form, data } = $props();
     let uploading = $state(false);
     let selectedImage = $state(null);
-</script>
+    let deleting = $state(false);</script>
 
 <svelte:head>
     <title>Manage Media | Admin Dashboard</title>
@@ -63,6 +63,24 @@
                 <div class="selection-info">
                     <span class="info-path">{selectedImage}</span>
                     <button class="btn-copy" onclick={() => { navigator.clipboard.writeText(`![${selectedImage.split('/').pop()}](${selectedImage})`); selectedImage = null; }}>Copy Markdown</button>
+                    {#if !deleting}
+                        <button class="btn-delete" onclick={() => deleting = true}>Delete</button>
+                    {/if}
+                    {#if deleting}
+                        <div class="delete-confirm">
+                            <span>Really delete this file?</span>
+                            <button class="btn-confirm-delete" onclick={async () => {
+                                deleting = false;
+                                const fd = new FormData();
+                                fd.append('path', selectedImage);
+                                const res = await fetch('?/delete', { method: 'POST', body: fd });
+                                if (res.ok) {
+                                    window.location.reload();
+                                }
+                            }}>Yes, Delete</button>
+                            <button class="btn-cancel-delete" onclick={() => deleting = false}>Cancel</button>
+                        </div>
+                    {/if}
                 </div>
             {/if}
         </div>
@@ -216,6 +234,72 @@
 
     .btn-copy:hover {
         opacity: 0.9;
+    }
+
+    .btn-delete {
+        padding: 0.4rem 0.8rem;
+        background: #d32f2f;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .btn-delete:hover {
+        opacity: 0.9;
+    }
+
+    .delete-confirm {
+        width: 100%;
+        margin-top: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(211, 47, 47, 0.08);
+        border: 1px solid rgba(211, 47, 47, 0.3);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .delete-confirm span {
+        font-size: 0.85rem;
+        color: #c62828;
+        font-weight: 500;
+    }
+
+    .btn-confirm-delete {
+        padding: 0.35rem 0.75rem;
+        background: #d32f2f;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .btn-confirm-delete:hover {
+        opacity: 0.9;
+    }
+
+    .btn-cancel-delete {
+        padding: 0.35rem 0.75rem;
+        background: transparent;
+        color: #666;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .btn-cancel-delete:hover {
+        border-color: #999;
+        color: #333;
     }
 
     .alert {
