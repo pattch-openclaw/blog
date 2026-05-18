@@ -16,8 +16,8 @@
 			<p>Create a draft post, write markdown, and push it directly to the repository.</p>
 		</a>
 		<a href="/admin/media" class="card">
-			<h2>Upload Media</h2>
-			<p>Upload images, audio, or fonts to serve directly from the repository.</p>
+			<h2>Manage Media</h2>
+			<p>Upload, browse, and manage media files served from the repository.</p>
 		</a>
 		<a href="/admin/logs" class="card">
 			<h2>System Logs</h2>

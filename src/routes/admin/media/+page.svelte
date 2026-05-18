@@ -5,13 +5,13 @@
 </script>
 
 <svelte:head>
-    <title>Upload Media | Admin Dashboard</title>
+    <title>Manage Media | Admin Dashboard</title>
 </svelte:head>
 
 <div class="admin-container">
     <div class="header">
         <a href="/admin" class="back-link">← Back to Dashboard</a>
-        <h1>Upload Media</h1>
+        <h1>Manage Media</h1>
     </div>
 
     {#if form?.success}
@@ -54,6 +54,7 @@
             await update();
         };
     }}>
+        <p class="form-hint">Browse files below or upload new media:</p>
         <div class="form-group">
             <label for="type">Media Type</label>
             <select name="type" id="type" required>
@@ -69,7 +70,7 @@
         </div>
 
         <button type="submit" disabled={uploading} class="btn-submit">
-            {uploading ? 'Uploading & Committing...' : 'Upload File'}
+            {uploading ? 'Uploading & Committing...' : 'Browse & Upload'}
         </button>
     </form>
 </div>
@@ -99,6 +100,11 @@
 
     h1 {
         margin: 0;
+    }
+
+    .form-hint {
+        color: #666;
+        margin-bottom: 1rem;
     }
 
     .alert {
