@@ -8,14 +8,8 @@ async function getStore(): Promise<PostStore> {
 	
 	const provider = getContentStore();
 	if (provider === 'supabase') {
-		try {
-			const { SupabasePostStore } = await import('./supabase-post-store');
-			_store = new SupabasePostStore();
-		} catch {
-			console.warn('SupabasePostStore not available, falling back to GitPostStore');
-			const { GitPostStore } = await import('./git-post-store');
-			_store = new GitPostStore();
-		}
+		const { SupabasePostStore } = await import('./supabase-post-store');
+		_store = new SupabasePostStore();
 	} else {
 		const { GitPostStore } = await import('./git-post-store');
 		_store = new GitPostStore();
