@@ -1,10 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import fs from 'fs/promises';
 import path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
+import { getStore, getPosts } from '$lib/server/posts';
 
 export const load = async ({ url }) => {
 	const slug = url.searchParams.get('slug');
@@ -22,28 +19,21 @@ export const load = async ({ url }) => {
 		return { title: '', slug: '', description: '', content: '', isEdit: false, images };
 	}
 
+	const store = await getStore();
 	try {
-		const filePath = path.join(process.cwd(), 'src', 'routes', 'blog', slug, '+page.md');
-		const fileData = await fs.readFile(filePath, 'utf-8');
-
-		// Very basic frontmatter parsing
-		const match = fileData.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-		if (match) {
-			const frontmatter = match[1];
-			const content = match[2].replace(/^\n+/, ''); // trim leading newlines but preserve formatting
-
-			const titleMatch = frontmatter.match(/title:\s*"([^"]+)"/);
-			const descMatch = frontmatter.match(/description:\s*"([^"]+)"/);
-
-			return {
-				title: titleMatch ? titleMatch[1].replace(/\\"/g, '"') : '',
-				slug,
-				description: descMatch ? descMatch[1].replace(/\\"/g, '"') : '',
-				content,
-				isEdit: true,
-				images
-			};
+		const post = await store.getPost(slug);
+		if (!post) {
+			return { title: '', slug, description: '', content: '', isEdit: false, images };
 		}
+
+		return {
+			title: post.title,
+			slug: post.slug,
+			description: post.description,
+			content: post.content,
+			isEdit: true,
+			images
+		};
 	} catch (e) {
 		console.error(`Failed to load existing draft for slug: ${slug}`, e);
 	}
@@ -63,45 +53,24 @@ export const actions = {
 			return fail(400, { error: 'Missing required fields (Title, Slug, and Content are required).' });
 		}
 
-		// Calculate today's date
-		const date = new Date().toISOString().split('T')[0];
-		
-		// Build the frontmatter block
-		const markdownContent = `---
-title: "${title.replace(/"/g, '\\"')}"
-date: ${date}
-description: "${(description || '').replace(/"/g, '\\"')}"
-published: false
----
-
-${content}
-`;
-
-		// Determine the absolute path to the blog directory inside the source code
-		const dir = path.join(process.cwd(), 'src', 'routes', 'blog', slug);
-		const filePath = path.join(dir, '+page.md');
-
+		const store = await getStore();
 		try {
-			await fs.mkdir(dir, { recursive: true });
-			await fs.writeFile(filePath, markdownContent, 'utf-8');
+			const post = await store.savePost({ title, slug, description, content });
 			
-			await execAsync(`git add "src/routes/blog/${slug}/+page.md"`);
-			await execAsync(`git commit --no-verify -m "content: add draft for ${slug}"`);
-			
-			// Fire the push completely detached after a 1-second delay.
-			// This gives the server enough time to successfully return the HTTP 200 response
-			// to the client before the GitHub Action runner starts rebuilding and killing PM2.
+			// Trigger git push in the background to start CI/CD
 			setTimeout(() => {
-				exec('git push --no-verify origin main', (err) => {
+				const { exec } = require('child_process');
+				exec('git add "src/routes/blog/' + slug + '/+page.md"');
+				exec('git commit --no-verify -m "content: add draft for ' + slug + '"');
+				exec('git push --no-verify origin main', (err: any) => {
 					if (err) console.error('Push failed:', err);
 				});
 			}, 1000);
 			
+			return { success: true, slug: post.slug };
 		} catch (e: any) {
 			console.error(e);
 			return fail(500, { error: `Failed to save or commit file: ${e.message}` });
 		}
-
-		return { success: true, slug };
 	}
 };

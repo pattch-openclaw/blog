@@ -1,26 +1,31 @@
-import type { Post } from '$lib/types';
+import { getContentStore } from './posts-store';
+import type { PostStore } from './posts-store';
 
-export async function getPosts(): Promise<Post[]> {
-	const posts: Post[] = [];
-	const paths = import.meta.glob('/src/routes/blog/*/+page.md', { eager: true });
+let _store: PostStore | null = null;
 
-	for (const path in paths) {
-		const file = paths[path];
-		const slug = path.split('/').at(-2);
-
-		if (file && typeof file === 'object' && 'metadata' in file && slug) {
-			const metadata = file.metadata as Omit<Post, 'slug' | 'published'> & { published?: boolean };
-			const post = {
-				...metadata,
-				slug,
-				published: metadata.published !== false // Default to true if missing
-			} satisfies Post;
-			
-			posts.push(post);
+async function getStore(): Promise<PostStore> {
+	if (_store) return _store;
+	
+	const provider = getContentStore();
+	if (provider === 'supabase') {
+		try {
+			const { SupabasePostStore } = await import('./supabase-post-store');
+			_store = new SupabasePostStore();
+		} catch {
+			console.warn('SupabasePostStore not available, falling back to GitPostStore');
+			const { GitPostStore } = await import('./git-post-store');
+			_store = new GitPostStore();
 		}
+	} else {
+		const { GitPostStore } = await import('./git-post-store');
+		_store = new GitPostStore();
 	}
-
-	return posts.sort((first, second) =>
-		new Date(second.date).getTime() - new Date(first.date).getTime()
-	);
+	return _store;
 }
+
+export async function getPosts() {
+	const store = await getStore();
+	return store.listPosts();
+}
+
+export { getStore };
