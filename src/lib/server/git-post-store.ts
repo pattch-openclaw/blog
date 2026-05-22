@@ -75,21 +75,28 @@ ${content}
 		const match = fileData.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
 		if (!match) throw new Error(`Post "${slug}" has no valid frontmatter`);
 
-		const frontmatter = match[1];
+		let frontmatter = match[1];
 		const body = match[2].replace(/^\n+/, '');
 
-		let updatedFM = frontmatter;
 		if (updates.title !== undefined) {
-			updatedFM = updatedFM.replace(/title:\s*".*?"/, `title: "${updates.title.replace(/"/g, '\\"')}"`);
+			// Match both quoted and unquoted title
+			frontmatter = frontmatter.replace(
+				/(title:\s*)(".*?"|[^@\n]+)/,
+				`$1"${updates.title.replace(/"/g, '\\"')}"`
+			);
 		}
 		if (updates.description !== undefined) {
-			updatedFM = updatedFM.replace(/description:\s*".*?"/, `description: "${(updates.description || '').replace(/"/g, '\\"')}"`);
+			// Match both quoted and unquoted description
+			frontmatter = frontmatter.replace(
+				/(description:\s*)(".*?"|[^@\n]+)/,
+				`$1"${(updates.description || '').replace(/"/g, '\\"')}"`
+			);
 		}
 		if (updates.published !== undefined) {
-			updatedFM = updatedFM.replace(/published:\s*(true|false)/, `published: ${updates.published}`);
+			frontmatter = frontmatter.replace(/published:\s*(true|false)/, `published: ${updates.published}`);
 		}
 
-		const newContent = `---\n${updatedFM}\n---\n${body}`;
+		const newContent = `---\n${frontmatter}\n---\n${body}`;
 		await fs.writeFile(postPath, newContent, 'utf-8');
 
 		return this.parsePost(newContent, slug)!;
@@ -107,14 +114,14 @@ ${content}
 		const frontmatter = match[1];
 		const content = match[2].replace(/^\n+/, '');
 
-		const titleMatch = frontmatter.match(/title:\s*"([^"]+)"/);
+		const titleMatch = frontmatter.match(/title:\s*(?:"([^"]*)"|([^@\n]+))/);
 		const dateMatch = frontmatter.match(/date:\s*(\S+)/);
-		const descMatch = frontmatter.match(/description:\s*"([^"]*)"/);
+		const descMatch = frontmatter.match(/description:\s*(?:"([^"]*)"|([^@\n]+))/);
 		const publishedMatch = frontmatter.match(/published:\s*(true|false)/);
 
-		const title = titleMatch ? titleMatch[1].replace(/\\"/g, '"') : '';
+		const title = titleMatch ? (titleMatch[1] ?? titleMatch[2])?.trim().replace(/\\"/g, '"') : '';
 		const date = dateMatch?.[1] || new Date().toISOString().split('T')[0];
-		const description = descMatch ? descMatch[1].replace(/\\"/g, '"') : '';
+		const description = descMatch ? (descMatch[1] ?? descMatch[2])?.trim().replace(/\\"/g, '"') : '';
 		const published = publishedMatch ? publishedMatch[1] === 'true' : true;
 
 		return { title, slug, description, date, published, content };
