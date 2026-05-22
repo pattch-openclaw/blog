@@ -22,4 +22,4 @@ export async function getPosts() {
 	return store.listPosts();
 }
 
-export { getStore };
+export { getStore, getContentStore };
