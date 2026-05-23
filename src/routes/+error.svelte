@@ -11,7 +11,7 @@
 	<p>{$page.error?.message ?? 'Page not found.'}</p>
 	
 	<div class="actions">
-		<a href="/" on:click|preventDefault={() => history.back()} class="back-link">← Go Back</a>
+		<a href="/" onclick={(e) => { e.preventDefault(); history.back(); }} class="back-link">← Go Back</a>
 		<span class="divider">|</span>
 		<a href="/" class="home-link">Home</a>
 	</div>

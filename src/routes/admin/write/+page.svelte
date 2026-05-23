@@ -150,25 +150,27 @@
 				<div class="form-group">
 					<label for="tags">Tags</label>
 					<input type="hidden" name="tags" value={tags.join(',')} />
-					<div class="tags-input-container" tabindex="0" on:keydown={handleTagKeydown}>
-						<span class="tag-badge" each:{tag}={tags}>
+					<div class="tags-input-container" tabindex="0" onkeydown={handleTagKeydown}>
+						{#each tags as tag}
+						<span class="tag-badge">
 							{tag}
 							<button type="button" class="tag-remove" onclick={() => removeTag(tag)} title="Remove tag">×</button>
 						</span>
+						{/each}
 						<input 
 							type="text" 
 							id="tags" 
 							name="tags" 
 							bind:value={tagInput} 
-							on:focus={() => tagInput && (showTagSuggestions = true)} 
-							on:blur={() => setTimeout(() => showTagSuggestions = false, 200)} 
+							onfocus={() => tagInput && (showTagSuggestions = true)} 
+							onblur={() => setTimeout(() => showTagSuggestions = false, 200)} 
 							placeholder="Type a tag and press Enter"
 							autocomplete="off"
 						/>
 						{#if showTagSuggestions && tagSuggestions.length}
 							<ul class="tag-suggestions">
 								{#each tagSuggestions as suggestion}
-									<li on:click={() => addTag(suggestion)}>{suggestion}</li>
+									<li onclick={() => addTag(suggestion)}>{suggestion}</li>
 								{/each}
 							</ul>
 						{/if}
