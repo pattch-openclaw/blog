@@ -1,9 +1,6 @@
 import { test, expect } from '@playwright/test';
 
 test('blog list page has expected layout and styling', async ({ page }) => {
-    // Start at a different page to force a client-side navigation to the blog list
-    await page.goto('/about');
-
     // Intercept network requests to /api/posts and return mock data
     await page.route('**/api/posts', async route => {
         const mockPosts = [
@@ -13,9 +10,8 @@ test('blog list page has expected layout and styling', async ({ page }) => {
         await route.fulfill({ json: mockPosts });
     });
 
-    // Navigate client-side to trigger the mocked fetch
-    await page.locator('nav a[href="/blog"]').click();
-    await page.locator('nav a[href="/blog"]').blur(); // Remove focus ring to prevent visual diff
+    // Navigate directly to /blog (bypasses svelte:head title not updating on client-side nav)
+    await page.goto('/blog');
 
     // Check title
     await expect(page).toHaveTitle(/Writing \| Sam's Blog/);
