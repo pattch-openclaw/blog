@@ -1,14 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test('blog list page has expected layout and styling', async ({ page }) => {
-    // Intercept network requests to /api/posts and return mock data
-    await page.route('**/api/posts', async route => {
-        const mockPosts = [
-            { title: 'Mocked Published Post', slug: 'mock-published', date: '2026-05-16T00:00:00Z', description: 'A published post for visual regression testing.', published: true },
-            { title: 'Mocked Draft Post', slug: 'mock-draft', date: '2026-05-15T00:00:00Z', description: 'A draft post for visual regression testing.', published: false }
-        ];
-        await route.fulfill({ json: mockPosts });
-    });
+    // Mocking is handled server-side via CONTENT_STORE=test-mock in playwright.config.ts.
+    // The globalSetup creates a TestMockPostStore that returns fake posts,
+    // so the server renders with mock data instead of real git-based posts.
 
     // Navigate directly to /blog (bypasses svelte:head title not updating on client-side nav)
     await page.goto('/blog');

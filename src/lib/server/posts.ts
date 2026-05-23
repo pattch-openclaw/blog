@@ -10,6 +10,9 @@ async function getStore(): Promise<PostStore> {
 	if (provider === 'supabase') {
 		const { SupabasePostStore } = await import('./supabase-post-store');
 		_store = new SupabasePostStore();
+	} else if (provider === 'test-mock') {
+		const { TestMockPostStore } = await import('./test-mock-store');
+		_store = new TestMockPostStore();
 	} else {
 		const { GitPostStore } = await import('./git-post-store');
 		_store = new GitPostStore();

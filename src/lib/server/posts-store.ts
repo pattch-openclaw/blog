@@ -46,8 +46,9 @@ export interface PostStore {
  * Valid values: 'git', 'supabase'
  * Defaults to 'git' if unset or unrecognized.
  */
-export function getContentStore(): 'git' | 'supabase' {
+export function getContentStore(): 'git' | 'supabase' | 'test-mock' {
 	const env = process.env.CONTENT_STORE?.toLowerCase().trim();
 	if (env === 'supabase') return 'supabase';
+	if (env === 'test-mock') return 'test-mock';
 	return 'git';
 }

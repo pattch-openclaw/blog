@@ -2,8 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
 	testDir: 'tests',
+	globalSetup: './playwright.setup.ts',
 	webServer: {
-		command: 'npm run build && SHOW_DRAFTS=true npm run preview',
+		command: 'npm run build && SHOW_DRAFTS=true CONTENT_STORE=test-mock npm run preview',
 		port: 4173,
 		timeout: 120000,
 		reuseExistingServer: !process.env.CI
