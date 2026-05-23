@@ -1,5 +1,8 @@
 import type { Post } from '$lib/types';
 
+// Re-export Post so consumers can import from posts-store
+export type { Post };
+
 /**
  * Abstract interface for blog post storage providers.
  * 
@@ -27,10 +30,10 @@ export interface PostStore {
 	savePost(post: Omit<Post, 'date' | 'published'>): Promise<Post>;
 
 	/**
-	 * Update an existing post (title, description, content, published).
+	 * Update an existing post (title, description, content, published, author, tags).
 	 * Does not change the slug.
 	 */
-	updatePost(slug: string, updates: Partial<Pick<Post, 'title' | 'description' | 'content' | 'published'>>): Promise<Post>;
+	updatePost(slug: string, updates: Partial<Pick<Post, 'title' | 'description' | 'content' | 'published' | 'author' | 'tags'>>): Promise<Post>;
 
 	/**
 	 * Delete a post by slug.

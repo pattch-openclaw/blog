@@ -22,4 +22,14 @@ export async function getPosts() {
 	return store.listPosts();
 }
 
+export async function getAllTags(): Promise<string[]> {
+	const store = await getStore();
+	const posts = await store.listPosts();
+	const tagSet = new Set<string>();
+	posts.forEach((post) => {
+		post.tags.forEach((tag) => tagSet.add(tag.toLowerCase()));
+	});
+	return Array.from(tagSet).sort();
+}
+
 export { getStore, getContentStore };

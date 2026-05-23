@@ -21,6 +21,28 @@
 	let selectedImage = $state('');
 	let imageMarkdown = $derived(selectedImage ? `![${selectedImage}](/media/images/${selectedImage})` : '');
 
+	// Author state
+	const AUTHORS = [
+		{ value: 'sam', label: 'sam' },
+		{ value: 'ai', label: 'ai 🦞' },
+		{ value: '__custom__', label: 'Other...' }
+	];
+	let author = $state(data?.author || 'sam');
+	let customAuthor = $state('');
+	let displayAuthor = $derived(author === '__custom__' ? customAuthor : author);
+
+	// Tag state
+	let tags = $state<string[]>(data?.tags || []);
+	let tagInput = $state('');
+	let showTagSuggestions = $state(false);
+	let tagSuggestions = $derived(
+		tagInput
+			? (data?.allTags || [])
+				.filter((t: string) => t.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(t))
+				.slice(0, 10)
+			: []
+	);
+
 	let pending = $state(false);
 	let isSuccess = $state(false);
 	let successSlug = $state('');
@@ -35,6 +57,28 @@
 			}
 		};
 	};
+
+	function addTag(tag: string) {
+		const normalized = tag.toLowerCase().trim();
+		if (normalized && !tags.includes(normalized)) {
+			tags = [...tags, normalized];
+		}
+		tagInput = '';
+		showTagSuggestions = false;
+	}
+
+	function removeTag(tag: string) {
+		tags = tags.filter((t: string) => t !== tag);
+	}
+
+	function handleTagKeydown(e: KeyboardEvent<HTMLElement>) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			addTag(tagInput);
+		} else if (e.key === 'Backspace' && !tagInput && tags.length) {
+			tags = tags.slice(0, -1);
+		}
+	}
 </script>
 
 <svelte:head>
@@ -84,6 +128,55 @@
 					<textarea id="description" name="description" rows="2" bind:value={description} placeholder="A short blurb about the post..."></textarea>
 				</div>
 
+				<div class="form-group">
+					<label for="author">Author</label>
+					<select id="author" name="author" bind:value={author}>
+						{#each AUTHORS as opt}
+							<option value={opt.value}>{opt.label}</option>
+						{/each}
+					</select>
+					{#if author === '__custom__'}
+						<input 
+							type="text" 
+							id="custom-author" 
+							name="customAuthor" 
+							bind:value={customAuthor} 
+							placeholder="Custom author name" 
+							style="margin-top: 0.5rem;"
+						/>
+					{/if}
+				</div>
+
+				<div class="form-group">
+					<label for="tags">Tags</label>
+					<input type="hidden" name="tags" value={tags.join(',')} />
+					<div class="tags-input-container" tabindex="0" on:keydown={handleTagKeydown}>
+						<span class="tag-badge" each:{tag}={tags}>
+							{tag}
+							<button type="button" class="tag-remove" onclick={() => removeTag(tag)} title="Remove tag">×</button>
+						</span>
+						<input 
+							type="text" 
+							id="tags" 
+							name="tags" 
+							bind:value={tagInput} 
+							on:focus={() => tagInput && (showTagSuggestions = true)} 
+							on:blur={() => setTimeout(() => showTagSuggestions = false, 200)} 
+							placeholder="Type a tag and press Enter"
+							autocomplete="off"
+						/>
+						{#if showTagSuggestions && tagSuggestions.length}
+							<ul class="tag-suggestions">
+								{#each tagSuggestions as suggestion}
+									<li on:click={() => addTag(suggestion)}>{suggestion}</li>
+								{/each}
+							</ul>
+						{/if}
+					</div>
+					{#if tags.length}
+						<small>Press Enter to add, or click a suggestion above. Use Backspace to remove the last tag.</small>
+					{/if}
+				</div>
 				{#if data.images && data.images.length > 0}
 					<div class="form-group image-picker-group">
 						<label for="image-picker">Insert Image</label>
@@ -372,6 +465,75 @@
 
 	small {
 		color: #666;
+	}
+
+	.tags-input-container {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+		padding: 0.5rem;
+		border: 1px solid var(--border-color);
+		border-radius: 6px;
+		min-height: 44px;
+		align-items: center;
+		cursor: text;
+	}
+
+	.tags-input-container:focus-within {
+		outline: 2px solid var(--link-color);
+		border-color: transparent;
+	}
+
+	.tag-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.15rem 0.4rem;
+		background: var(--link-color);
+		color: white;
+		border-radius: 4px;
+		font-size: 0.8rem;
+	}
+
+	.tag-remove {
+		background: none;
+		border: none;
+		color: white;
+		cursor: pointer;
+		padding: 0;
+		font-size: 1rem;
+		line-height: 1;
+		opacity: 0.7;
+	}
+
+	.tag-remove:hover {
+		opacity: 1;
+	}
+
+	.tag-suggestions {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		border: 1px solid var(--border-color);
+		border-radius: 4px;
+		background: var(--bg-color);
+		max-height: 150px;
+		overflow-y: auto;
+		width: 100%;
+		z-index: 10;
+	}
+
+	.tag-suggestions li {
+		padding: 0.5rem 0.75rem;
+		cursor: pointer;
+		font-size: 0.875rem;
+	}
+
+	.tag-suggestions li:hover {
+		background: rgba(128, 128, 128, 0.1);
 	}
 
 	.image-picker-controls {

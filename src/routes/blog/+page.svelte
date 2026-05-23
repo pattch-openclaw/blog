@@ -1,5 +1,42 @@
 <script lang="ts">
-	let { data } = $props();
+	import { page } from '$app/stores';
+
+	let { data, url } = $props();
+
+	// Get initial tag filter from URL
+	const initialTag = $derived(url?.searchParams.get('tag') || '');
+	let activeTag = $state(initialTag);
+
+	// Filter posts by active tag
+	let filteredPosts = $derived(
+		activeTag
+			? data.posts.filter((p: typeof data.posts[number]) => p.tags.includes(activeTag))
+			: data.posts
+	);
+
+	// Compute tag counts for tag cloud
+	let tagCloud = $derived(
+		data.posts.reduce((acc: Record<string, number>, post: typeof data.posts[number]) => {
+			post.tags.forEach((tag: string) => {
+				acc[tag] = (acc[tag] || 0) + 1;
+			});
+			return acc;
+		}, {} as Record<string, number>)
+	);
+
+	function clearTagFilter() {
+		activeTag = '';
+		navigateTo('/blog');
+	}
+
+	function setTagFilter(tag: string) {
+		activeTag = tag;
+		navigateTo(`/blog?tag=${encodeURIComponent(tag)}`);
+	}
+
+	function navigateTo(path: string) {
+		window.location.href = path;
+	}
 </script>
 
 <svelte:head>
@@ -7,24 +44,53 @@
 </svelte:head>
 
 <h1>Writing</h1>
-<p>A collection of my thoughts and experiments.</p>
+<p class="subtitle">A collection of my thoughts and experiments.</p>
 
-<ul class="posts">
-	{#each data.posts as post}
-		<li class:is-draft={!post.published}>
-			<div class="post-meta">
-				<span class="date">{new Date(post.date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-				{#if !post.published}
-					<span class="draft-badge">📝 Draft</span>
+{#if Object.keys(tagCloud).length > 0}
+	<div class="tag-cloud">
+		<span class="tag-cloud-label">Topics:</span>
+		{#each Object.entries(tagCloud).sort((a: any, b: any) => b[1] - a[1]) as [tag, count]}
+			<button
+				class="tag-pill" class:active-tag={activeTag === tag}
+				onclick={() => setTagFilter(tag)}
+			>{tag} {count}</button>
+		{/each}
+		{#if activeTag}
+			<button class="clear-filter" onclick={clearTagFilter}>✕ clear</button>
+		{/if}
+	</div>
+{/if}
+
+{#if activeTag}
+	<p class="filter-info">Showing posts tagged "{activeTag}"</p>
+{/if}
+
+{#if filteredPosts.length === 0}
+	<p class="no-posts">No posts found.</p>
+{:else}
+	<ul class="posts">
+		{#each filteredPosts as post}
+			<li class:is-draft={!post.published}>
+				<div class="post-meta">
+					<span class="date">{new Date(post.date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+					<span class="author-badge">{post.author === 'ai' ? post.author + ' 🦞' : post.author}</span>
+					<div class="post-tags">
+						{#each post.tags as tag}
+							<a class="post-tag" href="/blog?tag={encodeURIComponent(tag)}">{tag}</a>
+						{/each}
+					</div>
+					{#if !post.published}
+						<span class="draft-badge">📝 Draft</span>
+					{/if}
+				</div>
+				<a class="title" href="/blog/{post.slug}">{post.title}</a>
+				{#if post.description}
+					<p class="description">{post.description}</p>
 				{/if}
-			</div>
-			<a class="title" href="/blog/{post.slug}">{post.title}</a>
-			{#if post.description}
-				<p class="description">{post.description}</p>
-			{/if}
-		</li>
-	{/each}
-</ul>
+			</li>
+		{/each}
+	</ul>
+{/if}
 
 <style>
 	.posts {
@@ -88,6 +154,98 @@
 		color: #555;
 	}
 
+	.subtitle {
+		color: #666;
+		margin-bottom: 1rem;
+	}
+
+	.tag-cloud {
+		margin: 1rem 0 2rem 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		align-items: center;
+	}
+
+	.tag-cloud-label {
+		font-weight: 600;
+		color: #666;
+		font-size: 0.875rem;
+	}
+
+	.tag-pill {
+		padding: 0.25rem 0.6rem;
+		border-radius: 9999px;
+		border: 1px solid var(--border-color);
+		background: transparent;
+		color: var(--text-color);
+		font-size: 0.8rem;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		font-family: inherit;
+	}
+
+	.tag-pill:hover {
+		background: rgba(128, 128, 128, 0.1);
+	}
+
+	.tag-pill.active-tag {
+		background: var(--link-color);
+		color: white;
+		border-color: var(--link-color);
+	}
+
+	.clear-filter {
+		padding: 0.25rem 0.6rem;
+		border: 1px solid #e5e7eb;
+		background: transparent;
+		color: #666;
+		font-size: 0.8rem;
+		cursor: pointer;
+		border-radius: 4px;
+		font-family: inherit;
+	}
+
+	.clear-filter:hover {
+		color: #000;
+	}
+
+	.filter-info {
+		color: #666;
+		font-size: 0.9rem;
+		margin-bottom: 1rem;
+	}
+
+	.no-posts {
+		color: #666;
+		font-style: italic;
+	}
+
+	.author-badge {
+		font-size: 0.8rem;
+		color: #888;
+		font-weight: 500;
+	}
+
+	.post-tags {
+		display: flex;
+		gap: 0.35rem;
+		margin-left: auto;
+	}
+
+	.post-tag {
+		font-size: 0.75rem;
+		color: var(--link-color);
+		text-decoration: none;
+		padding: 0.1rem 0.4rem;
+		border-radius: 4px;
+		background: rgba(128, 128, 128, 0.05);
+	}
+
+	.post-tag:hover {
+		background: rgba(128, 128, 128, 0.15);
+	}
+
 	@media (prefers-color-scheme: dark) {
 		.date {
 			color: #aaa;
@@ -102,6 +260,21 @@
 		.draft-badge {
 			background-color: rgba(245, 158, 11, 0.3);
 			color: #fbbf24;
+		}
+		.tag-pill {
+			border-color: #444;
+		}
+		.tag-pill:hover {
+			background: rgba(128, 128, 128, 0.2);
+		}
+		.clear-filter {
+			border-color: #444;
+		}
+		.post-tag {
+			background: rgba(128, 128, 128, 0.15);
+		}
+		.post-tag:hover {
+			background: rgba(128, 128, 128, 0.25);
 		}
 	}
 </style>

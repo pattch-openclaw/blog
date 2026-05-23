@@ -47,14 +47,20 @@ export class GitPostStore implements PostStore {
 	}
 
 	async savePost(post: Omit<Post, 'date' | 'published'>): Promise<Post> {
-		const { title, slug, description, content } = post;
+		const { title, slug, description, content, author, tags } = post;
 		const date = new Date().toISOString().split('T')[0];
+
+		const tagsLine = tags && tags.length > 0
+			? `tags: [${tags.map((t: string) => `'${t}'`).join(', ')}]`
+			: '';
 
 		const markdownContent = `---
 title: "${title.replace(/"/g, '\\"')}"
 date: ${date}
 description: "${(description || '').replace(/"/g, '\\"')}"
 published: false
+author: ${author}
+${tagsLine}
 ---
 
 ${content}
@@ -66,10 +72,10 @@ ${content}
 		await fs.mkdir(postDir, { recursive: true });
 		await fs.writeFile(postFile, markdownContent, 'utf-8');
 
-		return { title, slug, description, date, published: false, content };
+		return { title, slug, description, date, published: false, author, tags: tags || [], content };
 	}
 
-	async updatePost(slug: string, updates: Partial<Pick<Post, 'title' | 'description' | 'content' | 'published'>>): Promise<Post> {
+	async updatePost(slug: string, updates: Partial<Pick<Post, 'title' | 'description' | 'content' | 'published' | 'author' | 'tags'>>): Promise<Post> {
 		const postPath = path.join(this.baseDir, slug, '+page.md');
 		const fileData = await fs.readFile(postPath, 'utf-8');
 		const match = fileData.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
@@ -79,14 +85,12 @@ ${content}
 		const body = match[2].replace(/^\n+/, '');
 
 		if (updates.title !== undefined) {
-			// Match both quoted and unquoted title
 			frontmatter = frontmatter.replace(
 				/(title:\s*)(".*?"|[^@\n]+)/,
 				`$1"${updates.title.replace(/"/g, '\\"')}"`
 			);
 		}
 		if (updates.description !== undefined) {
-			// Match both quoted and unquoted description
 			frontmatter = frontmatter.replace(
 				/(description:\s*)(".*?"|[^@\n]+)/,
 				`$1"${(updates.description || '').replace(/"/g, '\\"')}"`
@@ -94,6 +98,26 @@ ${content}
 		}
 		if (updates.published !== undefined) {
 			frontmatter = frontmatter.replace(/published:\s*(true|false)/, `published: ${updates.published}`);
+		}
+		if (updates.author !== undefined) {
+			if (frontmatter.includes('author:')) {
+				frontmatter = frontmatter.replace(
+					/(author:\s*)(".*?"|[^@\n]+)/,
+					`$1${updates.author}`
+				);
+			} else {
+				frontmatter = frontmatter.trim() + `\nauthor: ${updates.author}`;
+			}
+		}
+		if (updates.tags !== undefined) {
+			const tagsLine = updates.tags.length > 0
+				? `tags: [${updates.tags.map((t: string) => `'${t}'`).join(', ')}]`
+				: '';
+			if (frontmatter.includes('tags:')) {
+				frontmatter = frontmatter.replace(/tags:\s*\[[^\]]*\]/, tagsLine);
+			} else if (tagsLine) {
+				frontmatter = frontmatter.trim() + `\n${tagsLine}`;
+			}
 		}
 
 		const newContent = `---\n${frontmatter}\n---\n${body}`;
@@ -119,11 +143,18 @@ ${content}
 		const descMatch = frontmatter.match(/description:\s*(?:"([^"]*)"|([^@\n]+))/);
 		const publishedMatch = frontmatter.match(/published:\s*(true|false)/);
 
+		const authorMatch = frontmatter.match(/author:\s*(?:"([^"]*)"|([^@\n]+))/);
+		const tagsMatch = frontmatter.match(/tags:\s*\[([^\]]*)\]/);
+
 		const title = titleMatch ? (titleMatch[1] ?? titleMatch[2])?.trim().replace(/\\"/g, '"') : '';
 		const date = dateMatch?.[1] || new Date().toISOString().split('T')[0];
 		const description = descMatch ? (descMatch[1] ?? descMatch[2])?.trim().replace(/\\"/g, '"') : '';
 		const published = publishedMatch ? publishedMatch[1] === 'true' : true;
+		const author = (authorMatch ? (authorMatch[1] ?? authorMatch[2])?.trim() : 'sam') || 'sam';
+		const tags = tagsMatch
+			? tagsMatch[1].split(',').map((t: string) => t.trim().replace(/^"|"$/g, '')).filter((t: string) => t)
+			: [];
 
-		return { title, slug, description, date, published, content };
+		return { title, slug, description, date, published, author, tags, content };
 	}
 }
