@@ -4,7 +4,7 @@ import type { Post, PostStore } from './posts-store';
 
 /**
  * PostStore implementation that reads/writes blog posts from
- * the server's own git repository (src/routes/blog/<slug>/+page.md).
+ * the server's own git repository (src/routes/blog/<slug>/<slug>.md).
  * 
  * This is the existing behavior, refactored into a store class.
  */
