@@ -3,6 +3,7 @@ title: Hello World
 date: 2026-03-14
 description: The first post testing out the new mdsvex integration.
 published: true
+author: test-author
 ---
 
 # Hello World

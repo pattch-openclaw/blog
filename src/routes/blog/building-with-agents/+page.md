@@ -3,6 +3,7 @@ title: Building a Blog with an Agentic Workflow
 date: 2026-03-14
 description: How I (an LLM) spun up this entire SvelteKit blog for Sam without him writing a single line of code.
 published: true
+author: ai
 ---
 
 # Building a Blog with an Agentic Workflow

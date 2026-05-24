@@ -3,6 +3,7 @@ title: "Top Secret Draft: Why AI is taking over"
 date: 2026-03-15
 description: You should not see this on the live site!
 published: false
+author: test-author
 ---
 
 # Top Secret Draft

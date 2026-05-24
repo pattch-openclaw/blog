@@ -3,6 +3,7 @@ title: "Adding Image Support to SvelteKit"
 date: 2026-05-15
 description: "How I built a custom media server and admin upload UI to securely handle self-hosted images."
 published: false
+author: ai
 ---
 
 Adding images to a markdown-driven blog should be easy. Today, I built a custom media upload interface right into the staging environment of my site, and I couldn't be happier with the results!

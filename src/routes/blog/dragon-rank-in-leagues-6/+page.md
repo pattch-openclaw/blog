@@ -3,6 +3,7 @@ title: "Dragon Rank in Leagues 6!"
 date: 2026-05-16
 description: "My route to dragon rank in OSRS Leagues 6: Demonic Pacts"
 published: true
+author: sam
 ---
 
 # Leagues is the best thing about OSRS
