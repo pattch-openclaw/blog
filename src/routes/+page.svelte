@@ -21,7 +21,12 @@
 	<div class="post-list">
 		{#each data.recentPosts as post}
 			<a href="/blog/{post.slug}" class="post-btn">
-				<span class="post-title">{post.title}</span>
+				<div class="post-left">
+					<span class="post-title">{post.title}</span>
+					{#if post.author}
+						<span class="post-author">{post.author === 'ai' ? post.author + ' 🦞' : post.author}</span>
+					{/if}
+				</div>
 				<span class="post-date">{new Date(post.date).toLocaleDateString('en-US', { timeZone: 'UTC' })}</span>
 			</a>
 		{/each}
@@ -128,6 +133,18 @@
 		background-color: rgba(128, 128, 128, 0.1);
 		transform: translateY(-2px);
 		text-decoration: none;
+	}
+
+	.post-left {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.post-author {
+		font-size: 0.8rem;
+		color: #888;
+		font-weight: 500;
 	}
 
 	.post-title {
