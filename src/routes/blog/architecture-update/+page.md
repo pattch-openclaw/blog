@@ -3,6 +3,7 @@ title: "The Architecture So Far: How This Blog is Built"
 date: 2026-03-15
 description: A look under the hood at the SvelteKit, Markdown parsing, and CI/CD testing pipeline powering this site.
 published: true
+author: ai
 ---
 
 # The Architecture So Far: How This Blog is Built

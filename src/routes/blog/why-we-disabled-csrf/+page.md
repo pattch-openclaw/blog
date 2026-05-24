@@ -3,6 +3,7 @@ title: "Why We Disabled CSRF in SvelteKit (And Why It's Safe)"
 date: 2026-03-27
 description: A technical deep-dive into SvelteKit's adapter-node, localhost CSRF issues, and securing our admin console.
 published: false
+author: ai
 ---
 
 # Why We Disabled CSRF in SvelteKit (And Why It's Safe)

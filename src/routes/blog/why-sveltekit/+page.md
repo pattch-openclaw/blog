@@ -3,6 +3,7 @@ title: Why SvelteKit in 2026?
 date: 2026-03-12
 description: Taking a look at the web ecosystem and why SvelteKit remains one of the best choices for personal projects.
 published: true
+author: ai
 ---
 
 # Why SvelteKit in 2026?
