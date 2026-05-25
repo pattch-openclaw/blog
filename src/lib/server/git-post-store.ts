@@ -15,20 +15,31 @@ export class GitPostStore implements PostStore {
 		this.baseDir = path.resolve(process.cwd(), 'src', 'routes', 'blog');
 	}
 
+	async readPostFile(slugOrEntry: string): Promise<Post | null> {
+		const postPath = path.join(this.baseDir, slugOrEntry, '+page.md');
+		const postContentPath = path.join(this.baseDir, slugOrEntry, 'post.md');
+
+		let fileData: string;
+		try {
+			fileData = await fs.readFile(postPath, 'utf-8');
+		} catch {
+			try {
+				fileData = await fs.readFile(postContentPath, 'utf-8');
+			} catch {
+				return null;
+			}
+		}
+		return this.parsePost(fileData, slugOrEntry);
+	}
+
 	async listPosts(): Promise<Post[]> {
 		const posts: Post[] = [];
 		const entries = await fs.readdir(this.baseDir, { withFileTypes: true });
 
 		for (const entry of entries) {
 			if (!entry.isDirectory()) continue;
-			const postPath = path.join(this.baseDir, entry.name, '+page.md');
-			try {
-				const fileData = await fs.readFile(postPath, 'utf-8');
-				const post = this.parsePost(fileData, entry.name);
-				if (post) posts.push(post);
-			} catch {
-				// Skip posts that can't be read
-			}
+			const post = await this.readPostFile(entry.name);
+			if (post) posts.push(post);
 		}
 
 		return posts.sort((a, b) =>
@@ -37,13 +48,7 @@ export class GitPostStore implements PostStore {
 	}
 
 	async getPost(slug: string): Promise<Post | null> {
-		const postPath = path.join(this.baseDir, slug, '+page.md');
-		try {
-			const fileData = await fs.readFile(postPath, 'utf-8');
-			return this.parsePost(fileData, slug);
-		} catch {
-			return null;
-		}
+		return this.readPostFile(slug);
 	}
 
 	async savePost(post: Omit<Post, 'date' | 'published'>): Promise<Post> {
@@ -67,7 +72,7 @@ ${content}
 `;
 
 		const postDir = path.join(this.baseDir, slug);
-		const postFile = path.join(postDir, '+page.md');
+		const postFile = path.join(postDir, 'post.md');
 
 		await fs.mkdir(postDir, { recursive: true });
 		await fs.writeFile(postFile, markdownContent, 'utf-8');
@@ -77,7 +82,15 @@ ${content}
 
 	async updatePost(slug: string, updates: Partial<Pick<Post, 'title' | 'description' | 'content' | 'published' | 'author' | 'tags'>>): Promise<Post> {
 		const postPath = path.join(this.baseDir, slug, '+page.md');
-		const fileData = await fs.readFile(postPath, 'utf-8');
+		const postContentPath = path.join(this.baseDir, slug, 'post.md');
+		let targetPath: string;
+		try {
+			await fs.access(postContentPath);
+			targetPath = postContentPath;
+		} catch {
+			targetPath = postPath;
+		}
+		const fileData = await fs.readFile(targetPath, 'utf-8');
 		const match = fileData.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
 		if (!match) throw new Error(`Post "${slug}" has no valid frontmatter`);
 

@@ -22,28 +22,27 @@ test('blog list page has expected layout and styling', async ({ page }) => {
 });
 
 test('single published blog post has expected layout', async ({ page }) => {
-    // We cannot mock static markdown content without breaking Svelte's scoped CSS classes.
-    // Instead, we perform visual regression on a real, stable published post.
-    await page.goto('/blog/hello-world');
+    // Uses TestMockPostStore via CONTENT_STORE=test-mock.
+    await page.goto('/blog/mock-published');
     
-    await expect(page.locator('h1').last()).toContainText('Hello World');
+    // Use role=heading to find the post title (not the layout header)
+    await expect(page.getByRole('heading', { name: 'Mocked Published Post' }).first()).toBeVisible();
+    await expect(page.locator('.author-badge', { hasText: 'sam' })).toBeVisible();
     await expect(page).toHaveScreenshot('blog-post-published.png', { maxDiffPixels: 100, fullPage: true });
 });
 
 test('single mock blog post with AI author has expected layout', async ({ page }) => {
     await page.goto('/blog/mock-ai');
     
-    await expect(page.locator('h1', { hasText: 'Mocked AI Post' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mocked AI Post' }).first()).toBeVisible();
     await expect(page.locator('.author-badge', { hasText: 'ai 🦞' })).toBeVisible();
     await expect(page).toHaveScreenshot('blog-post-mock-ai.png', { maxDiffPixels: 100, fullPage: true });
 });
 
 test('single draft blog post has expected layout', async ({ page }) => {
-    // We cannot mock static markdown content without breaking Svelte's scoped CSS classes.
-    // Instead, we perform visual regression on a real, stable draft post.
     await page.goto('/blog/secret-draft');
     
-    await expect(page.locator('h1').last()).toContainText('Top Secret Draft');
+    await expect(page.getByRole('heading', { name: 'Top Secret Draft' }).first()).toBeVisible();
     await expect(page.locator('.admin-actions')).toBeVisible();
     await expect(page).toHaveScreenshot('blog-post-draft.png', { maxDiffPixels: 100, fullPage: true });
 });
