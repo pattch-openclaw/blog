@@ -7,9 +7,9 @@ test('homepage has expected title and structure', async ({ page }) => {
     // Intercept network requests to /api/posts and return mock data
     await page.route('**/api/posts', async route => {
         const mockPosts = [
-            { title: 'Mocked Recent Post 1', slug: 'mock-1', date: '2026-05-16T00:00:00Z', published: true },
-            { title: 'Mocked Recent Post 2', slug: 'mock-2', date: '2026-05-15T00:00:00Z', published: true },
-            { title: 'Mocked Recent Post 3', slug: 'mock-3', date: '2026-05-14T00:00:00Z', published: true }
+            { title: 'Mocked Recent Post 1', slug: 'mock-1', date: '2026-05-16T00:00:00Z', published: true, author: 'sam' },
+            { title: 'Mocked Recent Post 2', slug: 'mock-2', date: '2026-05-15T00:00:00Z', published: true, author: 'ai' },
+            { title: 'Mocked Recent Post 3', slug: 'mock-3', date: '2026-05-14T00:00:00Z', published: true, author: 'sam' }
         ];
         await route.fulfill({ json: mockPosts });
     });

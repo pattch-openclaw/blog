@@ -2,11 +2,11 @@ import type { PostStore, Post } from './posts-store';
 
 export class TestMockPostStore implements PostStore {
 	private posts: Post[] = [
-		{ title: 'Mocked Published Post', slug: 'mock-published', date: '2026-05-16T00:00:00Z', description: 'A published post for visual regression testing.', published: true, author: 'sam', tags: [] },
-		{ title: 'Mocked AI Post', slug: 'mock-ai', date: '2026-05-14T00:00:00Z', description: 'A post written by an LLM for testing.', published: true, author: 'ai', tags: [] },
-		{ title: 'Mocked Draft Post', slug: 'mock-draft', date: '2026-05-15T00:00:00Z', description: 'A draft post for visual regression testing.', published: false, author: 'sam', tags: [] },
+		{ title: 'Mocked Published Post', slug: 'mock-published', date: '2026-05-16T00:00:00Z', description: 'A published post for visual regression testing.', published: true, author: 'sam', tags: [], content: '## Mocked Published Post\n\nThis is the content of the mocked published post for visual regression testing.' },
+		{ title: 'Mocked AI Post', slug: 'mock-ai', date: '2026-05-14T00:00:00Z', description: 'A post written by an LLM for testing.', published: true, author: 'ai', tags: [], content: '## Mocked AI Post\n\nThis is the content of the AI-authored mocked post for visual regression testing.' },
+		{ title: 'Mocked Draft Post', slug: 'mock-draft', date: '2026-05-15T00:00:00Z', description: 'A draft post for visual regression testing.', published: false, author: 'sam', tags: [], content: '## Mocked Draft Post\n\nThis is a draft post for testing admin controls.' },
 		// Includes a real draft post so the draft-page admin controls test can resolve it
-		{ title: 'Top Secret Draft: Why AI is taking over', slug: 'secret-draft', date: '2026-03-15', description: 'You should not see this on the live site!', published: false, author: 'sam', tags: [] }
+		{ title: 'Top Secret Draft: Why AI is taking over', slug: 'secret-draft', date: '2026-03-15', description: 'You should not see this on the live site!', published: false, author: 'sam', tags: [], content: '## Top Secret Draft\n\nYou should not see this on the live site!' }
 	];
 
 	async listPosts(): Promise<Post[]> {
