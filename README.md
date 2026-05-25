@@ -118,8 +118,6 @@ tags:                 # YAML array or comma-separated, empty if missing
 - ✅ Existing posts parse without `author`/`tags` (default to `"sam"` / `[]`)
 
 **Next steps (pending):**
-- Backfill `author` on existing posts that lack it (e.g., "building-with-agents")
-- Display author + tags on single post pages (`/blog/[slug]`)
 - Supabase `SupabasePostStore` needs to handle `author`/`tags` when Phase 2 resumes
 
 ## Long-Term Goals (prioritized as we go)
