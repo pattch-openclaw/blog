@@ -2,9 +2,9 @@ import { expect, test } from 'vitest';
 import { GitPostStore } from './git-post-store';
 import { TestMockPostStore } from './test-mock-store';
 
-// ---------------------------------------------------------------------------
+// ------------------------------------ ------------------ ------ ----------- ----
 // Author default test (GitPostStore → savePost defaults to 'sam')
-// ---------------------------------------------------------------------------
+// ------ ---------------------------------- ---- ---------- ------ ----------- ----
 
 test('savePost defaults to sam author when not explicitly set', async () => {
 	const store = new GitPostStore();
@@ -22,9 +22,9 @@ test('savePost defaults to sam author when not explicitly set', async () => {
 	await store.deletePost('test-default-author');
 });
 
-// ---------------------------------------------------------------------------
+// ------ -------------------------- ---- ------------------ ------ ----------- ----
 // Author rendering test (parsePost correctly extracts author)
-// ---------------------------------------------------------------------------
+// ------ ---------------------------------- ---- ---------- ------ ----------- ----
 
 test('parsePost renders the author field correctly', async () => {
 	const store = new GitPostStore();
@@ -43,9 +43,9 @@ Body
 	expect(post?.author).toBe('ai');
 });
 
-// ---------------------------------------------------------------------------
+// ------ -------------------------- ---- ------------------ ------ ----------- ----
 // Blog list renders author (via TestMockPostStore)
-// ---------------------------------------------------------------------------
+// ------ ---------------------------------- ---- ---------- ------ ----------- ----
 
 test('blog lists render the author from the data layer', async () => {
 	const store = new TestMockPostStore();
@@ -64,9 +64,9 @@ test('blog lists render the author from the data layer', async () => {
 	expect(aiPost?.author).toBe('ai');
 });
 
-// ---------------------------------------------------------------------------
+// ------ -------------------------- ---- ------------------ ------ ----------- ----
 // Graceful handling of missing author on blog posts
-// ---------------------------------------------------------------------------
+// ------ ---------------------------------- ---- ---------- ------ ----------- ----
 
 test('blog posts gracefully handle missing author fields (defaults to sam)', async () => {
 	const store = new GitPostStore();
@@ -85,9 +85,9 @@ Body
 	expect(post?.author).toBe('sam');
 });
 
-// ---------------------------------------------------------------------------
+// ------ -------------------------- ---- ------------------ ------ ----------- ----
 // Graceful handling of missing author on blog lists
-// ---------------------------------------------------------------------------
+// ------ ---------------------------------- ---- ---------- ------ ----------- ----
 
 test('blog lists gracefully handle missing author fields', async () => {
 	const store = new TestMockPostStore();
@@ -106,4 +106,98 @@ test('blog lists gracefully handle missing author fields', async () => {
 		expect(anyPost.author).toBeDefined();
 		expect(typeof anyPost.author).toBe('string');
 	}
+});
+
+// ------ -------------------------- ---- ------------------ ------ ----------- ----
+// Single post page renders the author
+// ------ ---------------------------------- ---- ---------- ------ ----------- ----
+
+test('single post page loads and renders the author from getPost', async () => {
+	const store = new TestMockPostStore();
+	const post = await store.getPost('mock-ai');
+
+	expect(post).not.toBeNull();
+	expect(post?.author).toBe('ai');
+
+	// Also verify a 'sam' authored post
+	const samPost = await store.getPost('mock-published');
+	expect(samPost).not.toBeNull();
+	expect(samPost?.author).toBe('sam');
+});
+
+// ------ -------------------------- ---- ------------------ ------ ----------- ----
+// Single post page handles missing author gracefully
+// ------ ---------------------------------- ---- ---------- ------ ----------- ----
+
+test('single post page handles posts with no author gracefully (defaults to sam)', async () => {
+	const store = new GitPostStore();
+	const fileData = `---
+title: "Draft Post No Author"
+date: 2026-02-01
+description: "A draft without author"
+published: false
+---
+
+Draft body content
+`;
+	// @ts-expect-error accessing private method for testing
+	const post = (store as any).parsePost(fileData, 'draft-no-author');
+	expect(post).not.toBeNull();
+	expect(post?.author).toBe('sam');
+});
+
+// ------ -------------------------- ---- ------------------ ------ ----------- ----
+// Writing/Editing a blog post sets the author correctly
+// ------ ---------------------------------- ---- ---------- ------ ----------- ----
+
+test('writing a blog post sets the author correctly', async () => {
+	const store = new GitPostStore();
+	const post = await store.savePost({
+		title: 'Test Author Post',
+		slug: 'test-author-save',
+		description: 'Testing author save',
+		author: 'ai',
+		content: 'Test content with explicit author.',
+		tags: ['test']
+	});
+
+	expect(post.author).toBe('ai');
+	expect(post.title).toBe('Test Author Post');
+
+	// Verify it can be retrieved with the correct author
+	const retrieved = await store.getPost('test-author-save');
+	expect(retrieved).not.toBeNull();
+	expect(retrieved?.author).toBe('ai');
+
+	// Cleanup
+	await store.deletePost('test-author-save');
+});
+
+test('editing a blog post updates the author correctly', async () => {
+	const store = new GitPostStore();
+
+	// First, save a post with author 'sam'
+	await store.savePost({
+		title: 'Test Edit Author',
+		slug: 'test-edit-author',
+		description: 'Testing author edit',
+		author: 'sam',
+		content: 'Initial content.',
+		tags: []
+	});
+
+	// Then update the author to 'ai'
+	const updated = await store.updatePost('test-edit-author', {
+		author: 'ai'
+	});
+
+	expect(updated.author).toBe('ai');
+
+	// Verify the update persisted via getPost
+	const retrieved = await store.getPost('test-edit-author');
+	expect(retrieved).not.toBeNull();
+	expect(retrieved?.author).toBe('ai');
+
+	// Cleanup
+	await store.deletePost('test-edit-author');
 });
