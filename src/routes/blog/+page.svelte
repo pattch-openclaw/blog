@@ -7,11 +7,66 @@
 	const initialTag = $derived(url?.searchParams.get('tag') || '');
 	let activeTag = $state(initialTag);
 
-	// Filter posts by active tag
+	// Compute unique authors from published posts (non-staging) or all posts (staging)
+	const authors = $derived(
+		Array.from(
+			new Set(
+				data.posts
+					.filter((p: typeof data.posts[number]) => p.published || !import.meta.env.PROD)
+					.map((p: typeof data.posts[number]) => p.author)
+					.filter(Boolean)
+			)
+		)
+		.sort()
+	);
+
+	// Track which authors are currently selected (all checked by default)
+	let authorFilters = $state<Record<string, boolean>>({});
+	$effect(() => {
+		let changed = false;
+		for (const author of authors) {
+			if (authorFilters[author] === undefined) {
+				authorFilters = { ...authorFilters, [author]: true };
+				changed = true;
+			}
+		}
+		if (changed) {
+			const current = Object.keys(authorFilters);
+			for (const author of current) {
+				if (!authors.includes(author)) {
+					authorFilters = Object.fromEntries(Object.entries(authorFilters).filter(([a]) => a !== author));
+				}
+			}
+		}
+	});
+
+	function toggleAuthor(author: string) {
+		authorFilters = { ...authorFilters, [author]: !authorFilters[author] };
+	}
+
+	// Filter posts by active tag AND active author filters
 	let filteredPosts = $derived(
-		activeTag
-			? data.posts.filter((p: typeof data.posts[number]) => p.tags.includes(activeTag))
-			: data.posts
+		(() => {
+			let result = data.posts;
+
+			// Apply tag filter
+			if (activeTag) {
+				result = result.filter((p: typeof data.posts[number]) => p.tags.includes(activeTag));
+			}
+
+			// Apply author filters — always filter if we have author definitions
+			const selectedAuthors = new Set(
+				Object.entries(authorFilters)
+					.filter(([, active]) => active)
+					.map(([author]) => author)
+			);
+
+			if (Object.keys(authorFilters).length > 0) {
+				result = result.filter((p: typeof data.posts[number]) => selectedAuthors.has(p.author));
+			}
+
+			return result;
+		})()
 	);
 
 	// Compute tag counts for tag cloud
@@ -63,6 +118,23 @@
 
 {#if activeTag}
 	<p class="filter-info">Showing posts tagged "{activeTag}"</p>
+{/if}
+
+{#if authors.length > 0}
+	<div class="author-filter">
+		<span class="author-filter-label">Authors:</span>
+		{#each authors as author}
+			<label class="author-checkbox">
+				<input
+					type="checkbox"
+					checked={authorFilters[author]}
+					onchange={() => toggleAuthor(author)}
+				/>
+				<span class="author-label-text">{author}</span>
+				<span class="author-count">{data.posts.filter((p: typeof data.posts[number]) => p.author === author).length}</span>
+			</label>
+		{/each}
+	</div>
 {/if}
 
 {#if filteredPosts.length === 0}
@@ -214,6 +286,49 @@
 		color: #666;
 		font-size: 0.9rem;
 		margin-bottom: 1rem;
+	}
+
+	.author-filter {
+		margin: 1rem 0 1.5rem 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		align-items: center;
+	}
+
+	.author-filter-label {
+		font-weight: 600;
+		color: #666;
+		font-size: 0.875rem;
+	}
+
+	.author-checkbox {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.875rem;
+		color: var(--text-color);
+		cursor: pointer;
+		padding: 0.2rem 0.5rem;
+		border-radius: 4px;
+		transition: background 0.15s ease;
+	}
+
+	.author-checkbox:hover {
+		background: rgba(128, 128, 128, 0.1);
+	}
+
+	.author-checkbox input[type="checkbox"] {
+		cursor: pointer;
+		accent-color: var(--link-color);
+	}
+
+	.author-count {
+		font-size: 0.75rem;
+		color: #999;
+		background: rgba(128, 128, 128, 0.1);
+		padding: 0.05rem 0.35rem;
+		border-radius: 9999px;
 	}
 
 	.no-posts {

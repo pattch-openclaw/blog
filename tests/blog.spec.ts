@@ -46,3 +46,54 @@ test('single draft blog post has expected layout', async ({ page }) => {
     await expect(page.locator('.admin-actions')).toBeVisible();
     await expect(page).toHaveScreenshot('blog-post-draft.png', { maxDiffPixels: 100, fullPage: true });
 });
+
+test('blog list page has author filter checkboxes', async ({ page }) => {
+    await page.goto('/blog');
+    
+    // Author filter should be visible
+    await expect(page.locator('.author-filter')).toBeVisible();
+    
+    // Should have checkboxes for sam and ai
+    await expect(page.getByRole('checkbox', { name: 'sam' })).toBeChecked();
+    await expect(page.getByRole('checkbox', { name: 'ai' })).toBeChecked();
+});
+
+test('filtering by author hides posts', async ({ page }) => {
+    await page.goto('/blog');
+    
+    // Initially see all posts (including sam's)
+    await expect(page.locator('.posts li')).toHaveCount(6);
+    
+    // Uncheck sam to hide sam's posts
+    await page.getByRole('checkbox', { name: 'sam' }).uncheck();
+    
+    // Should now only see ai's posts
+    await expect(page.locator('.posts li')).toHaveCount(2);
+});
+
+test('re-checking author shows their posts', async ({ page }) => {
+    await page.goto('/blog');
+    
+    // Uncheck ai
+    await page.getByRole('checkbox', { name: 'ai' }).uncheck();
+    
+    // Should only see sam's posts
+    await expect(page.locator('.posts li')).toHaveCount(4);
+    
+    // Re-check ai
+    await page.getByRole('checkbox', { name: 'ai' }).check();
+    
+    // All posts visible again
+    await expect(page.locator('.posts li')).toHaveCount(6);
+});
+
+test('unchecking all authors shows no posts', async ({ page }) => {
+    await page.goto('/blog');
+    
+    // Uncheck both checkboxes
+    await page.getByRole('checkbox', { name: 'sam' }).uncheck();
+    await page.getByRole('checkbox', { name: 'ai' }).uncheck();
+    
+    // No posts visible
+    await expect(page.locator('.no-posts')).toBeVisible();
+});
