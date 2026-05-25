@@ -30,6 +30,14 @@ test('single published blog post has expected layout', async ({ page }) => {
     await expect(page).toHaveScreenshot('blog-post-published.png', { maxDiffPixels: 100, fullPage: true });
 });
 
+test('single mock blog post with AI author has expected layout', async ({ page }) => {
+    await page.goto('/blog/mock-ai');
+    
+    await expect(page.locator('h1', { hasText: 'Mocked AI Post' })).toBeVisible();
+    await expect(page.locator('.author-badge', { hasText: 'ai 🦞' })).toBeVisible();
+    await expect(page).toHaveScreenshot('blog-post-mock-ai.png', { maxDiffPixels: 100, fullPage: true });
+});
+
 test('single draft blog post has expected layout', async ({ page }) => {
     // We cannot mock static markdown content without breaking Svelte's scoped CSS classes.
     // Instead, we perform visual regression on a real, stable draft post.
