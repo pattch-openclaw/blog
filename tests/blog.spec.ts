@@ -11,9 +11,6 @@ test('blog list page has expected layout and styling', async ({ page }) => {
     // Check title
     await expect(page).toHaveTitle(/Writing \| Sam's Blog/);
 
-    // Make sure the main header is visible
-    await expect(page.locator('h1', { hasText: 'Writing' })).toBeVisible();
-
     // Wait for the posts to load
     await expect(page.locator('.posts')).toBeVisible();
 
@@ -47,15 +44,15 @@ test('single draft blog post has expected layout', async ({ page }) => {
     await expect(page).toHaveScreenshot('blog-post-draft.png', { maxDiffPixels: 100, fullPage: true });
 });
 
-test('blog list page has author filter checkboxes', async ({ page }) => {
+test('blog list page has author filter pills', async ({ page }) => {
     await page.goto('/blog');
     
     // Author filter should be visible
     await expect(page.locator('.author-filter')).toBeVisible();
     
-    // Should have checkboxes for sam and ai
-    await expect(page.getByRole('checkbox', { name: 'sam' })).toBeChecked();
-    await expect(page.getByRole('checkbox', { name: 'ai' })).toBeChecked();
+    // Should have pills for sam and ai
+    await expect(page.locator('.author-pill', { hasText: 'sam' })).toHaveClass(/author-active/);
+    await expect(page.locator('.author-pill', { hasText: 'ai' })).toHaveClass(/author-active/);
 });
 
 test('filtering by author hides posts', async ({ page }) => {
@@ -64,8 +61,8 @@ test('filtering by author hides posts', async ({ page }) => {
     // Initially see all posts (including sam's)
     await expect(page.locator('.posts li')).toHaveCount(6);
     
-    // Uncheck sam to hide sam's posts
-    await page.getByRole('checkbox', { name: 'sam' }).uncheck();
+    // Click sam pill to toggle it off
+    await page.locator('.author-pill', { hasText: 'sam' }).click();
     
     // Should now only see ai's posts
     await expect(page.locator('.posts li')).toHaveCount(2);
@@ -74,14 +71,14 @@ test('filtering by author hides posts', async ({ page }) => {
 test('re-checking author shows their posts', async ({ page }) => {
     await page.goto('/blog');
     
-    // Uncheck ai
-    await page.getByRole('checkbox', { name: 'ai' }).uncheck();
+    // Click ai pill to toggle it off
+    await page.locator('.author-pill', { hasText: 'ai' }).click();
     
     // Should only see sam's posts
     await expect(page.locator('.posts li')).toHaveCount(4);
     
-    // Re-check ai
-    await page.getByRole('checkbox', { name: 'ai' }).check();
+    // Click ai pill again to toggle it on
+    await page.locator('.author-pill', { hasText: 'ai' }).click();
     
     // All posts visible again
     await expect(page.locator('.posts li')).toHaveCount(6);
@@ -90,9 +87,9 @@ test('re-checking author shows their posts', async ({ page }) => {
 test('unchecking all authors shows no posts', async ({ page }) => {
     await page.goto('/blog');
     
-    // Uncheck both checkboxes
-    await page.getByRole('checkbox', { name: 'sam' }).uncheck();
-    await page.getByRole('checkbox', { name: 'ai' }).uncheck();
+    // Click both pills to toggle them off
+    await page.locator('.author-pill', { hasText: 'sam' }).click();
+    await page.locator('.author-pill', { hasText: 'ai' }).click();
     
     // No posts visible
     await expect(page.locator('.no-posts')).toBeVisible();

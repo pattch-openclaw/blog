@@ -98,9 +98,6 @@
 	<title>Writing | Sam's Blog</title>
 </svelte:head>
 
-<h1>Writing</h1>
-<p class="subtitle">A collection of my thoughts and experiments.</p>
-
 {#if Object.keys(tagCloud).length > 0}
 	<div class="tag-cloud">
 		<span class="tag-cloud-label">Topics:</span>
@@ -122,17 +119,15 @@
 
 {#if authors.length > 0}
 	<div class="author-filter">
-		<span class="author-filter-label">Authors:</span>
 		{#each authors as author}
-			<label class="author-checkbox">
-				<input
-					type="checkbox"
-					checked={authorFilters[author]}
-					onchange={() => toggleAuthor(author)}
-				/>
-				<span class="author-label-text">{author}</span>
+			<span
+				class="author-pill"
+				class:author-active={authorFilters[author]}
+				onclick={() => toggleAuthor(author)}
+			>
+				<span class="author-name">{author}</span>
 				<span class="author-count">{data.posts.filter((p: typeof data.posts[number]) => p.author === author).length}</span>
-			</label>
+			</span>
 		{/each}
 	</div>
 {/if}
@@ -226,11 +221,6 @@
 		color: #555;
 	}
 
-	.subtitle {
-		color: #666;
-		margin-bottom: 1rem;
-	}
-
 	.tag-cloud {
 		margin: 1rem 0 2rem 0;
 		display: flex;
@@ -289,46 +279,47 @@
 	}
 
 	.author-filter {
-		margin: 1rem 0 1.5rem 0;
+		margin: 0.5rem 0 1rem 0;
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.75rem;
+		gap: 0.4rem;
 		align-items: center;
 	}
 
-	.author-filter-label {
-		font-weight: 600;
-		color: #666;
-		font-size: 0.875rem;
-	}
-
-	.author-checkbox {
+	.author-pill {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		font-size: 0.875rem;
+		font-size: 0.75rem;
+		color: #999;
+		cursor: pointer;
+		padding: 0.15rem 0.5rem;
+		border-radius: 9999px;
+		transition: all 0.15s ease;
+		user-select: none;
+		border: 1px solid transparent;
+	}
+
+	.author-pill:hover {
+		background: rgba(128, 128, 128, 0.08);
+	}
+
+	.author-pill.author-active {
 		color: var(--text-color);
-		cursor: pointer;
-		padding: 0.2rem 0.5rem;
-		border-radius: 4px;
-		transition: background 0.15s ease;
+		background: rgba(128, 128, 128, 0.12);
+		border-color: rgba(128, 128, 128, 0.2);
 	}
 
-	.author-checkbox:hover {
-		background: rgba(128, 128, 128, 0.1);
-	}
-
-	.author-checkbox input[type="checkbox"] {
-		cursor: pointer;
-		accent-color: var(--link-color);
+	.author-pill:not(.author-active) {
+		background: rgba(128, 128, 128, 0.05);
 	}
 
 	.author-count {
-		font-size: 0.75rem;
-		color: #999;
-		background: rgba(128, 128, 128, 0.1);
-		padding: 0.05rem 0.35rem;
-		border-radius: 9999px;
+		font-size: 0.7rem;
+		color: #aaa;
+		background: none;
+		padding: 0;
+		border-radius: 0;
 	}
 
 	.no-posts {
