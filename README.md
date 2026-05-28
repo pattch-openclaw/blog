@@ -204,6 +204,7 @@ tags:                 # YAML array or comma-separated, empty if missing
   pm2 restart sams-blog-staging
   ```
   Runtimes will pick up `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `.blog-secrets` automatically. Do not store credentials in the public repo.
+- **⚠️ Currently broken:** `.blog-secrets` is not being read by PM2. The `/admin/supabase` page shows `(not set)` for both URL and anon key. The dotenv loading in `ecosystem.config.cjs` is not propagating the env vars to the running processes — likely because the secrets file is on a different host from where CI/CD deploys, or PM2 process container does not have access to the path. Needs investigation before Supabase integration can proceed.
 - **Pending:** Create `SupabasePostStore` implementation, `FallingBackPostStore`, staging banner, E2E validation
 
 #### Phase 3 — Supabase-only (remove git content layer)
