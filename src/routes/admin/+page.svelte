@@ -23,6 +23,10 @@
 			<h2>System Logs</h2>
 			<p>View application and error logs to debug issues on the staging server.</p>
 		</a>
+		<a href="/admin/supabase" class="card">
+			<h2>Supabase Configuration</h2>
+			<p>View current Supabase URL and anon key loaded from the secrets file.</p>
+		</a>
 	</div>
 </div>
 
