@@ -1,3 +1,6 @@
+const dotenv = require('dotenv');
+dotenv.config({ path: '/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets' });
+
 module.exports = {
   apps: [
     {

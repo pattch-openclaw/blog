@@ -71,6 +71,14 @@ pm2 save
 pm2 startup # Follow the instructions it outputs to run PM2 on boot
 ```
 
+The ecosystem config uses **dotenv** to load `SUPABASE_URL` and `SUPABASE_ANON_KEY` from the `.blog-secrets` file on the host at startup. No manual env sourcing is needed. Both `sams-blog-prod` and `sams-blog-staging` pick up the credentials automatically.
+
+To update secrets after changing `.blog-secrets`:
+```bash
+pm2 restart sams-blog-prod
+pm2 restart sams-blog-staging
+```
+
 ### Step 3: Serve Externally with Cloudflare Tunnels
 Cloudflare Tunnels expose your local PM2 services securely.
 
@@ -184,17 +192,19 @@ tags:                 # YAML array or comma-separated, empty if missing
 - **No change to actual data yet** — everything still lives in git history
 - **Bonus fixes during Phase 1:** Fixed `parsePost` to handle both quoted and unquoted frontmatter fields (title, description, published) — posts with unquoted descriptions were parsing as blank
 
-#### Phase 2 — Add Supabase + fallback (dual-path) ⏳ BLOCKED — awaiting Supabase project setup
-- **Pre-req:** Sam sets up Supabase project (free tier) in US West region
-  - Run SQL migrations for `posts` and `media_entries` tables
-  - Create 3 public Storage buckets: `images`, `audio`, `fonts`
-  - Get `SUPABASE_URL` and `SUPABASE_ANON_KEY` credentials
-  - Install `@supabase/supabase-js`
-- Create `SupabasePostStore` implementation
-- Create `FallingBackPostStore` that tries Supabase first, falls back to GitPostStore on failure
-- On staging: enable the fallback store, add a banner on `/blog` and `/blog/[slug]` showing the actual content source
-- All blog changes go through **both** paths (git + Supabase)
-- Validate everything end-to-end: write, edit, publish, delete, media
+#### Phase 2 — Add Supabase + fallback (dual-path) ⏳ IN PROGRESS
+- **Supabase project setup:** ✅ Complete
+  - `posts` and `media_entries` tables created with RLS enabled (public read access)
+  - Storage buckets: `images`, `audio`, `fonts`
+  - `@supabase/supabase-js` installed on host
+  - Credentials managed via `/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets` (loads automatically via dotenv at PM2 startup using absolute path — no file placement in blog directory needed)
+- **To activate Supabase:** Ensure `.blog-secrets` exists at the absolute path above, then restart:
+  ```bash
+  pm2 restart sams-blog-prod
+  pm2 restart sams-blog-staging
+  ```
+  Runtimes will pick up `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `.blog-secrets` automatically. Do not store credentials in the public repo.
+- **Pending:** Create `SupabasePostStore` implementation, `FallingBackPostStore`, staging banner, E2E validation
 
 #### Phase 3 — Supabase-only (remove git content layer)
 - Once validated, switch to Supabase-only mode
