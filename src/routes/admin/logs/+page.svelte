@@ -1,5 +1,14 @@
 <script lang="ts">
     let { data } = $props();
+
+    function formatLogs(raw: string): string {
+        if (!raw) return 'No logs available.';
+        // Highlight ISO-8601 timestamps in a muted blue so they stand out
+        return raw.replace(
+            /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+[\+\-Z])/g,
+            '<span class="ts">$1</span>'
+        );
+    }
 </script>
 
 <svelte:head>
@@ -18,12 +27,12 @@
         <div class="logs-section">
             <div class="log-panel">
                 <h3>Error Logs</h3>
-                <pre class="log-viewer error-log"><code>{data.logs.stderr || 'No recent errors.'}</code></pre>
+                <pre class="log-viewer error-log"><code>{formatLogs(data.logs.stderr)}</code></pre>
             </div>
             
             <div class="log-panel">
                 <h3>Standard Logs</h3>
-                <pre class="log-viewer std-log"><code>{data.logs.stdout || 'No recent output.'}</code></pre>
+                <pre class="log-viewer std-log"><code>{formatLogs(data.logs.stdout)}</code></pre>
             </div>
         </div>
     </div>
@@ -88,6 +97,11 @@
         line-height: 1.4;
         max-height: 600px;
         overflow-y: auto;
+    }
+
+    .ts {
+        color: #569cd6;
+        opacity: 0.9;
     }
 
     .error-log {
