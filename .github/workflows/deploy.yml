@@ -41,5 +41,8 @@ jobs:
       - name: Build the app
         run: npm run build
 
+      - name: Clear PM2 logs
+        run: pm2 flush
+
       - name: Restart PM2 services
         run: pm2 reload ecosystem.config.cjs --update-env
