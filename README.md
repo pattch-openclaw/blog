@@ -6,7 +6,7 @@ A simple, personal blog project built with SvelteKit.
 
 The `/admin/logs` page is currently under development to address stale log output. The admin page runs `npx pm2 logs sams-blog-staging --nostream --lines 150` at load time, which reads PM2 log files at the moment of the request. Two issues were identified:
 
-1. **Stale/cached log content**: PM2's internal cache and the `pm2 update` version mismatch (in-memory 6.0.14 vs CLI 7.0.1) can cause old log entries to persist in output. Fix: run `pm2 clear` on the staging process after PM2 updates, or add a `postStartScript` to the ecosystem config that truncates log files on deployment.
+1. **Stale/cached log content**: PM2's internal cache and the `pm2 update` version mismatch (in-memory 6.0.14 vs CLI 7.0.1) can cause old log entries to persist in output. ✅ **Fixed**: Added `pm2 flush` step in the GitHub Actions deploy workflow (`.github/workflows/deploy.yml`) that runs before `pm2 reload`, clearing all PM2 logs on every deployment so fresh logs are always available.
 2. **Missing timestamp highlighting**: The `formatLogs` regex only highlights ISO-8601 timestamps with timezone suffixes, but PM2 uses its own bracketed format `[YYYY-MM-DD HH:mm:ss.mmm]` which isn't highlighted, making timestamps appear missing.
 
 **Planned follow-up improvements (next):**
