@@ -3,6 +3,10 @@ import { getPosts } from '$lib/server/posts';
 import { env } from '$env/dynamic/private';
 import { logger } from '$lib/logging';
 
+// Log server startup timestamp so initialization timeline is captured.
+// This runs once when the server module is loaded.
+logger.info('Server started');
+
 export const handle: Handle = async ({ event, resolve }) => {
 	logger.info(`[${event.request.method}] ${event.url.pathname}`);
 

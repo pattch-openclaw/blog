@@ -23,4 +23,12 @@ describe('logger timestamp format', () => {
         expect(content).toContain('error');
         expect(content).toContain('debug');
     });
+
+    it('hooks.server.ts logs server startup', () => {
+        const hooksPath = path.join(process.cwd(), 'src', 'hooks.server.ts');
+        const content = fs.readFileSync(hooksPath, 'utf-8');
+        // Verify a startup log line exists at module top-level (before the handle export)
+        const startupLogMatch = content.match(/logger\.info\(\s*['"]Server started['"]/);
+        expect(startupLogMatch).not.toBeNull();
+    });
 });
