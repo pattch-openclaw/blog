@@ -4,15 +4,15 @@ A simple, personal blog project built with SvelteKit.
 
 ## In-Development: Admin Logs Page Improvements
 
-The `/admin/logs` page is currently under development to address stale log output. The admin page runs `npx pm2 logs sams-blog-staging --nostream --lines 150` at load time, which reads PM2 log files at the moment of the request. Two issues were identified:
+The `/admin/logs` page retrieves PM2 logs for the staging instance at load time via `npx pm2 logs sams-blog-staging --nostream --lines 150`. Several issues have been addressed and new ones identified:
 
-1. **Stale/cached log content**: PM2's internal cache and the `pm2 update` version mismatch (in-memory 6.0.14 vs CLI 7.0.1) can cause old log entries to persist in output. ✅ **Fixed**: Added `pm2 flush` step in the GitHub Actions deploy workflow (`.github/workflows/deploy.yml`) that runs before `pm2 reload`, clearing all PM2 logs on every deployment so fresh logs are always available.
-2. **Missing timestamp highlighting**: The `formatLogs` regex only highlights ISO-8601 timestamps with timezone suffixes, but PM2 uses its own bracketed format `[YYYY-MM-DD HH:mm:ss.mmm]` which isn't highlighted, making timestamps appear missing.
+**Fixed:**
+- **Stale/cached log content**: Added `pm2 flush` in the deploy workflow (`.github/workflows/deploy.yml`) before `pm2 reload`, clearing all PM2 logs on every deployment so fresh logs are always available. ✅ Merged.
 
-**Planned follow-up improvements (next):**
-- Increase the default line count from 150 to 10,000+ so the admin page shows much more history.
-- Add a secondary endpoint that serves the full raw log content for download or deep inspection.
-- Fix the timestamp regex to also match PM2's bracketed format.
+**Remaining issues:**
+- **Log line count**: The command uses `--lines 150`, which is still quite limited. Consider increasing to 10,000+ for more history on the admin page.
+- **Timestamp highlighting**: PM2 output uses bracketed format `[YYYY-MM-DD HH:mm:ss.mmm]` (e.g., ` 1|sams-blo | 1|sams-blo | `) and the `formatLogs` regex may not be matching these correctly.
+- **Application-level log timestamps missing**: Timestamps from logs explicitly configured in the app's startup code don't render properly on the admin page — likely a formatting/matching issue in the rendering layer.
 
 See the [Project Notes](#project-notes) section below for other completed features.
 
