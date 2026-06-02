@@ -1,11 +1,15 @@
 import { error, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { getPosts } from '$lib/server/posts';
 import { env } from '$env/dynamic/private';
+import { logger } from '$lib/logging';
 
 export const handle: Handle = async ({ event, resolve }) => {
+	logger.info(`[${event.request.method}] ${event.url.pathname}`);
+
 	// Block access to the admin console in production
 	if (event.url.pathname.startsWith('/admin')) {
 		if (env.SHOW_DRAFTS !== 'true') {
+			logger.warn(`Admin blocked: SHOW_DRAFTS=${env.SHOW_DRAFTS}`);
 			throw error(404, 'Not found');
 		}
 	}
@@ -20,6 +24,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			
 			// If the post is marked as a draft and we aren't in the staging environment, block it
 			if (post && !post.published && env.SHOW_DRAFTS !== 'true') {
+				logger.warn(`Draft post hidden: ${slug}`);
 				throw error(404, 'Post not found');
 			}
 		}
@@ -29,7 +34,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 };
 
 export const handleError: HandleServerError = ({ error: err, event }) => {
-	console.error('[Global Error Hook]', err);
+	logger.error(`[Global Error Hook] ${event ? `${event.request.method} ${event.url.pathname}` : 'unknown'}: ${err}`);
 
 	return {
 		message: err instanceof Error ? err.message : 'Internal Server Error',

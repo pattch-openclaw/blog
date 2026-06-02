@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { logger } from '$lib/logging';
 
 const execAsync = promisify(exec);
 
@@ -31,22 +32,23 @@ export const load: PageServerLoad = async () => {
 
 export const actions = {
     upload: async ({ request }) => {
+        const data = await request.formData();
+        const type = data.get('type')?.toString();
+        const file = data.get('file') as File;
+        let safeFilename = 'unknown';
+
+        if (!type || !['images', 'audio', 'fonts'].includes(type)) {
+            return fail(400, { error: 'Invalid media type' });
+        }
+
+        if (!file || file.size === 0) {
+            return fail(400, { error: 'No file uploaded' });
+        }
+
+        // Sanitize the filename to prevent path traversal or weird characters
+        safeFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        
         try {
-            const data = await request.formData();
-            const type = data.get('type')?.toString();
-            const file = data.get('file') as File;
-
-            if (!type || !['images', 'audio', 'fonts'].includes(type)) {
-                return fail(400, { error: 'Invalid media type' });
-            }
-
-            if (!file || file.size === 0) {
-                return fail(400, { error: 'No file uploaded' });
-            }
-
-            // Sanitize the filename to prevent path traversal or weird characters
-            const safeFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-            
             const mediaDir = path.resolve('media', type);
             const filePath = path.join(mediaDir, safeFilename);
 
@@ -58,19 +60,16 @@ export const actions = {
             const buffer = Buffer.from(arrayBuffer);
             await fs.writeFile(filePath, buffer);
 
+            logger.info(`Media upload: ${type}/${safeFilename} (${(file.size / 1024).toFixed(1)}KB)`);
+
             // Commit and push the new file to Git
             const relativePath = `media/${type}/${safeFilename}`;
             await execAsync(`git add "${relativePath}"`);
             
-            // Instead of running asynchronously in the background, we will wait for it
-            // and return the raw Git output back to the UI.
-            
-            // 1. Set dummy identity for the runner
+            // Set dummy identity for the runner
             await execAsync(`git config user.name "Staging Admin" && git config user.email "admin@staging.local"`);
             
-            // 2. Commit the file (with --no-verify to skip Husky hooks on uploads)
-            // We do this because Playwright screendiff tests frequently fail inside PM2
-            // We also gracefully handle the case where the file is already committed or the working tree is clean
+            // Commit the file (with --no-verify to skip Husky hooks)
             let commitStdout = '';
             let commitStderr = '';
             try {
@@ -78,7 +77,6 @@ export const actions = {
                 commitStdout = commitResult.stdout;
                 commitStderr = commitResult.stderr;
             } catch (commitErr: any) {
-                // If it failed because there's "nothing to commit" (e.g. file already exists and is identical), that's fine
                 if (commitErr.stdout && commitErr.stdout.includes('nothing to commit')) {
                     commitStdout = commitErr.stdout;
                     console.log('File already committed or nothing to commit. Proceeding to push.');
@@ -87,9 +85,11 @@ export const actions = {
                 }
             }
             
-            // 3. Push to remote (with --no-verify to skip pre-push hooks like UI tests)
+            // Push to remote
             const pushResult = await execAsync('git push --no-verify origin main');
 
+            logger.info(`Media upload committed: ${safeFilename}`);
+            logger.info(`Media upload pushed: ${safeFilename}`);
             return { 
                 success: true, 
                 path: `/media/${type}/${safeFilename}`,
@@ -100,9 +100,8 @@ export const actions = {
                     pushStderr: pushResult.stderr
                 }
             };
-            
         } catch (e: any) {
-            console.error('Upload or Git sync failed:', e);
+            logger.error(`Media upload failed: ${safeFilename}`, e);
             return fail(500, { 
                 error: `Upload or Git sync failed`,
                 details: e.stack || e.message,
@@ -135,17 +134,18 @@ export const actions = {
         }
 
         try {
-            // 1. Delete the file
+            // Delete the file
             await fs.unlink(localPath);
+            logger.info(`Media delete: ${filename}`);
 
-            // 2. Set git identity
+            // Set git identity
             await execAsync(`git config user.name "Staging Admin" && git config user.email "admin@staging.local"`);
 
-            // 3. Remove from git index
+            // Remove from git index
             const relativePath = `media/images/${filename}`;
             await execAsync(`git rm --cached "${relativePath}"`);
             
-            // 4. Commit the deletion
+            // Commit the deletion
             let commitStdout = '';
             let commitStderr = '';
             try {
@@ -153,7 +153,6 @@ export const actions = {
                 commitStdout = commitResult.stdout;
                 commitStderr = commitResult.stderr;
             } catch (commitErr: any) {
-                // File may already be removed from index
                 if (commitErr.stdout && commitErr.stdout.includes('nothing to commit')) {
                     commitStdout = commitErr.stdout;
                 } else {
@@ -161,7 +160,7 @@ export const actions = {
                 }
             }
             
-            // 5. Push to remote
+            // Push to remote
             const pushResult = await execAsync('git push --no-verify origin main');
 
             return { 
@@ -174,9 +173,8 @@ export const actions = {
                     pushStderr: pushResult.stderr
                 }
             };
-            
         } catch (e: any) {
-            console.error('Delete or Git sync failed:', e);
+            logger.error(`Media delete failed: ${filename}`, e);
             return fail(500, { 
                 error: `Delete or Git sync failed`,
                 details: e.stack || e.message,

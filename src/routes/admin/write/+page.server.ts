@@ -2,6 +2,7 @@ import { fail } from '@sveltejs/kit';
 import fs from 'fs/promises';
 import path from 'path';
 import { getStore, getPosts, getAllTags } from '$lib/server/posts';
+import { logger } from '$lib/logging';
 
 export const load = async ({ url }) => {
 	const slug = url.searchParams.get('slug');
@@ -76,7 +77,9 @@ export const actions = {
 
 		const store = await getStore();
 		try {
+			logger.info(`Saving post: ${slug} (author: ${author})`);
 			const post = await store.savePost({ title, slug, description, content, author, tags });
+			logger.info(`Post saved successfully: ${slug}`);
 			
 			// Trigger git push in the background to start CI/CD
 			setTimeout(() => {
@@ -84,13 +87,17 @@ export const actions = {
 				exec('git add "src/routes/blog/' + slug + '/+page.md"');
 				exec('git commit --no-verify -m "content: add draft for ' + slug + '"');
 				exec('git push --no-verify origin main', (err: any) => {
-					if (err) console.error('Push failed:', err);
+					if (err) {
+						logger.error(`Git push failed for ${slug}:`, err);
+					} else {
+						logger.info(`Git push succeeded for ${slug}`);
+					}
 				});
 			}, 1000);
 			
 			return { success: true, slug: post.slug };
 		} catch (e: any) {
-			console.error(e);
+			logger.error(`Failed to save post ${slug}:`, e);
 			return fail(500, { error: `Failed to save or commit file: ${e.message}` });
 		}
 	}
