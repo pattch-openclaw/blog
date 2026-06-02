@@ -3,11 +3,20 @@
 
     function formatLogs(raw: string): string {
         if (!raw) return 'No logs available.';
-        // Highlight ISO-8601 timestamps in a muted blue so they stand out
-        return raw.replace(
+        // Strip ANSI escape codes (belt-and-suspenders with server-side strip)
+        let text = raw.replace(/\x1b\[[0-9;]*m/g, '');
+        // Highlight both ISO-8601 and PM2 bracketed timestamps
+        // PM2 format: [2026-06-01 14:30:00.123]
+        // ISO format:  2026-06-01T14:30:00.123Z
+        text = text.replace(
+            /(\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+\])/g,
+            '<span class="ts">$1</span>'
+        );
+        text = text.replace(
             /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+[\+\-Z])/g,
             '<span class="ts">$1</span>'
         );
+        return text;
     }
 </script>
 

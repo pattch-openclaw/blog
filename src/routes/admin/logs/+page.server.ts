@@ -4,6 +4,11 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+// Strip ANSI escape sequences for clean output
+function stripAnsi(input: string): string {
+    return input.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
 export const load = async () => {
     try {
         // Try to read the pm2 logs for the staging environment.
@@ -14,8 +19,8 @@ export const load = async () => {
         
         try {
             const pm2Result = await execAsync('npx pm2 logs sams-blog-staging --nostream --lines 150');
-            stdout = pm2Result.stdout;
-            stderr = pm2Result.stderr;
+            stdout = stripAnsi(pm2Result.stdout);
+            stderr = stripAnsi(pm2Result.stderr);
         } catch (e: any) {
             // If pm2 fails, try direct file read from standard PM2 paths as fallback
             const home = process.env.HOME || '/root';
@@ -25,12 +30,12 @@ export const load = async () => {
             try {
                 const outRes = await execAsync(`tail -n 100 ${pm2OutPath}`);
                 const errRes = await execAsync(`tail -n 100 ${pm2ErrPath}`);
-                stdout = "--- OUT LOGS ---\n" + outRes.stdout;
-                stderr = "--- ERROR LOGS ---\n" + errRes.stdout;
+                stdout = '--- OUT LOGS ---\n' + stripAnsi(outRes.stdout);
+                stderr = '--- ERROR LOGS ---\n' + stripAnsi(errRes.stdout);
             } catch (fallbackErr: any) {
                 // If even file reading fails, return the original pm2 execution error
-                stdout = e.stdout || 'No stdout available';
-                stderr = (e.stderr || e.message) + '\n\nFallback error: ' + fallbackErr.message;
+                stdout = stripAnsi(e.stdout || 'No stdout available');
+                stderr = stripAnsi(e.stderr || e.message) + '\n\nFallback error: ' + fallbackErr.message;
             }
         }
 
