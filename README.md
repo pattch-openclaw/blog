@@ -2,22 +2,6 @@
 
 A simple, personal blog project built with SvelteKit.
 
-## In-Development: Admin Logs Page Improvements
-
-The `/admin/logs` page retrieves PM2 logs for the staging instance at load time via `npx pm2 logs sams-blog-staging --nostream --lines 150`. Several issues have been addressed and new ones identified:
-
-**Fixed:**
-- **Stale/cached log content**: Added `pm2 flush` in the deploy workflow (`.github/workflows/deploy.yml`) before `pm2 reload`, clearing all PM2 logs on every deployment so fresh logs are always available. ✅ Merged.
-
-**Remaining issues:**
-- **Log line count**: The command uses `--lines 150`, which is still quite limited. Consider increasing to 10,000+ for more history on the admin page.
-- **Timestamp highlighting**: PM2 output uses bracketed format `[YYYY-MM-DD HH:mm:ss.mmm]` (e.g., ` 1|sams-blo | 1|sams-blo | `) and the `formatLogs` regex may not be matching these correctly.
-- **Application-level log timestamps missing**: Timestamps from logs explicitly configured in the app's startup code don't render properly on the admin page — likely a formatting/matching issue in the rendering layer.
-
-See the [Project Notes](#project-notes) section below for other completed features.
-
----
-
 ## Overview
 This repository contains the source code for my personal blog. It serves as a place to share thoughts, projects, and updates, leveraging SvelteKit for a fast and clean developer experience.
 
