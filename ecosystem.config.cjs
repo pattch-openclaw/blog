@@ -39,7 +39,8 @@ module.exports = {
         SHOW_DRAFTS: 'false',
         BODY_SIZE_LIMIT: '52428800',
         SUPABASE_URL: envPairs.SUPABASE_URL || '',
-        SUPABASE_ANON_KEY: envPairs.SUPABASE_ANON_KEY || ''
+        SUPABASE_ANON_KEY: envPairs.SUPABASE_ANON_KEY || '',
+        SUPABASE_URL_TEST: 'hardcoded_test_value_12345'
       }
     },
     {
@@ -55,7 +56,8 @@ module.exports = {
         SHOW_DRAFTS: 'true',
         BODY_SIZE_LIMIT: '52428800',
         SUPABASE_URL: envPairs.SUPABASE_URL || '',
-        SUPABASE_ANON_KEY: envPairs.SUPABASE_ANON_KEY || ''
+        SUPABASE_ANON_KEY: envPairs.SUPABASE_ANON_KEY || '',
+        SUPABASE_URL_TEST: 'hardcoded_test_value_12345'
       }
     }
   ]

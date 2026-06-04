@@ -34,6 +34,7 @@ export const load: PageServerLoad = () => {
 			process.env.SUPABASE_ANON_KEY
 				? `${process.env.SUPABASE_ANON_KEY.slice(0, 8)}…${process.env.SUPABASE_ANON_KEY.slice(-8)}`
 				: '(not set)',
+		supabaseUrlTest: process.env.SUPABASE_URL_TEST || '(not set)',
 		secretsDebug: debug
 	};
 };
