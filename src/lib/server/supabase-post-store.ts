@@ -1,5 +1,6 @@
 import type { Post, PostStore } from './posts-store';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from './supabase-client';
 
 /**
  * Row shape returned from the Supabase `posts` table.
@@ -81,14 +82,8 @@ export class SupabasePostStore implements PostStore {
 		if (db) {
 			this.db = db;
 		} else {
-			// Production: create real Supabase client
-			const { createClient } = require('@supabase/supabase-js');
-			const url = process.env.SUPABASE_URL;
-			const anonKey = process.env.SUPABASE_ANON_KEY;
-			if (!url || !anonKey) {
-				throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY environment variables are required');
-			}
-			this.db = createClient(url, anonKey) as unknown as SupabaseQueryClient;
+			// Production: use shared client factory
+			this.db = getSupabaseClient() as unknown as SupabaseQueryClient;
 		}
 	}
 
