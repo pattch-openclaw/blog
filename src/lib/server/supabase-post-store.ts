@@ -147,7 +147,12 @@ export class SupabasePostStore implements PostStore {
 		}
 
 		if (!result.data || result.data.length === 0) {
-			throw new Error('Supabase insert returned no data');
+			// When RLS blocks the insert, Supabase returns { data: null, error: null }.
+			// Surface a helpful message so Sam knows to check RLS policies.
+			throw new Error(
+				`Supabase insert returned no data for post "${post.slug}". ` +
+				'This usually means RLS is blocking the insert. Check the /admin/schema page for RLS policy status.'
+			);
 		}
 
 		// .insert().select() returns an array of inserted rows;
@@ -177,7 +182,10 @@ export class SupabasePostStore implements PostStore {
 		}
 
 		if (!result.data || result.data.length === 0) {
-			throw new Error(`Supabase update returned no data for slug: ${slug}`);
+			throw new Error(
+				`Supabase update returned no data for slug: ${slug}. ` +
+				'This usually means RLS is blocking the update. Check the /admin/schema page for RLS policy status.'
+			);
 		}
 
 		return this.mapRow(result.data[0] as SupabasePostRow);
