@@ -56,6 +56,24 @@ module.exports = {
         SUPABASE_ANON_KEY: envPairs.SUPABASE_ANON_KEY || '',
         SUPABASE_URL_TEST: 'hardcoded_test_value_12345'
       }
+    },
+    {
+      name: 'sams-blog-sandbox',
+      script: './build/index.js',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3002,
+        SHOW_DRAFTS: 'true',
+        CONTENT_STORE: 'supabase',
+        BODY_SIZE_LIMIT: '52428800',
+        SUPABASE_URL: envPairs.SUPABASE_URL || '',
+        SUPABASE_ANON_KEY: envPairs.SUPABASE_ANON_KEY || '',
+        SUPABASE_URL_TEST: 'hardcoded_test_value_12345'
+      }
     }
   ]
 };
