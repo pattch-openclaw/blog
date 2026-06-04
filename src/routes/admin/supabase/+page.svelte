@@ -21,6 +21,24 @@
 			<code>{data.supabaseAnonKey}</code>
 		</div>
 	</div>
+
+	{#if 'secretsDebug' in data}
+		<div class="debug">
+			<h2>Secrets File Debug</h2>
+			{#if data.secretsDebug.found}
+				<p class="success">✅ Secrets file found ({data.secretsDebug.fileSize} bytes, {data.secretsDebug.lines.length} lines)</p>
+				<h3>Parsed KEY=VALUE pairs:</h3>
+				<details>
+					<summary>Show all keys ({data.secretsDebug.pairs.length})</summary>
+					<pre>{data.secretsDebug.pairs.map(p => `${p.key} = [${p.value.length}] ${p.value}`).join('\n')}</pre>
+				</details>
+				<h3>Raw file contents (lines):</h3>
+				<pre>{data.secretsDebug.lines.map((l, i) => `${String(i + 1).padStart(3)}: ${l}`).join('\n')}</pre>
+			{:else}
+				<p class="error">❌ Error reading secrets file: {data.secretsDebug.error}</p>
+			{/if}
+		</div>
+	{/if}
 </div>
 
 <style>
