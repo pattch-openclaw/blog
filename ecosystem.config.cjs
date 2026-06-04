@@ -1,36 +1,27 @@
 const fs = require('fs');
+const path = require('path');
 
-// Read secrets at module load time so they're available for both PM2 app configs.
-// The file exists on the host machine but not in this repo.
-const secretsPath = '/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets';
+// Resolve the secrets file relative to this config file's directory,
+// so it works regardless of where the blog repo is deployed on the host.
+const secretsPath = path.join(__dirname, '.blog-secrets');
+
 let envPairs = {};
 try {
   const raw = fs.readFileSync(secretsPath, 'utf-8');
-  // Log what we read (PM2 stdout/stderr goes to logs)
-  console.log(`[ecosystem] Reading secrets from: ${secretsPath}`);
-  console.log(`[ecosystem] File length: ${raw.length} chars`);
-  raw.split('\n').forEach((line, idx) => {
-    line = line.trim();
-    if (line && !line.startsWith('#')) {
-      const eq = line.indexOf('=');
-      if (eq !== -1) {
-        const key = line.slice(0, eq).trim();
-        const val = line.slice(eq + 1).trim();
-        envPairs[key] = val;
-        const displayVal = val.length > 10 ? val.slice(0, 4) + '…' + val.slice(-4) : val;
-        console.log(`[ecosystem]   ${key} = ${displayVal}`);
-      }
+  const lines = raw.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq !== -1) {
+      const key = trimmed.slice(0, eq).trim();
+      const val = trimmed.slice(eq + 1).trim();
+      envPairs[key] = val;
     }
-  });
-  if (!envPairs.SUPABASE_URL) {
-    console.error('[ecosystem] WARNING: SUPABASE_URL not found in secrets file!');
-  }
-  if (!envPairs.SUPABASE_ANON_KEY) {
-    console.error('[ecosystem] WARNING: SUPABASE_ANON_KEY not found in secrets file!');
   }
 } catch (err) {
-  console.error(`[ecosystem] ERROR reading secrets: ${err.message}`);
-  // Secrets file not found locally; empty envPairs (safe fallback).
+  // Secrets file not found — envPairs stays empty.
+  // The app will run with git backend until secrets are configured.
 }
 
 module.exports = {
