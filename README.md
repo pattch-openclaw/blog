@@ -213,14 +213,17 @@ tags:                 # YAML array or comma-separated, empty if missing
   - `posts` and `media_entries` tables created with RLS enabled (public read access)
   - Storage buckets: `images`, `audio`, `fonts`
   - `@supabase/supabase-js` installed on host
-  - Credentials managed via `/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets` (loads automatically via dotenv at PM2 startup using absolute path — no file placement in blog directory needed)
-- **To activate Supabase:** Ensure `.blog-secrets` exists at the absolute path above, then restart:
-  ```bash
-  pm2 restart sams-blog-prod
-  pm2 restart sams-blog-staging
+  - Credentials managed via `/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets` (manually parsed at PM2 startup via `ecosystem.config.cjs`)
+
+  **⚠️ Secrets file format:** The `.blog-secrets` file must use plain `KEY=VALUE` lines (one per line). Do **not** use `export KEY=VALUE` — the parser splits on the first `=` and takes everything after it as the value, so the `export` prefix would become part of the key and silently break credential loading. Comments starting with `#` are supported and ignored. Blank lines are also ignored.
+
+  Example format:
   ```
-  Runtimes will pick up `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `.blog-secrets` automatically. Do not store credentials in the public repo.
-- **⚠️ Currently broken:** `.blog-secrets` is not being read by PM2. The `/admin/supabase` page shows `(not set)` for both URL and anon key. The dotenv loading in `ecosystem.config.cjs` is not propagating the env vars to the running processes — likely because the secrets file is on a different host from where CI/CD deploys, or PM2 process container does not have access to the path. Needs investigation before Supabase integration can proceed.
+  SUPABASE_URL=https://abc123.supabase.co
+  SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  ```
+
+- **Supabase runtime access:** ✅ Verified — both `sams-blog-prod` and `sams-blog-staging` successfully read `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `.blog-secrets` at startup. The `/admin/supabase` admin page displays the injected values correctly.
 - **Pending:** Create `SupabasePostStore` implementation, `FallingBackPostStore`, staging banner, E2E validation
 
 #### Phase 3 — Supabase-only (remove git content layer)
