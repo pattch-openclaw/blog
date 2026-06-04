@@ -6,7 +6,10 @@ const secretsPath = '/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets';
 let envPairs = {};
 try {
   const raw = fs.readFileSync(secretsPath, 'utf-8');
-  raw.split('\n').forEach(line => {
+  // Log what we read (PM2 stdout/stderr goes to logs)
+  console.log(`[ecosystem] Reading secrets from: ${secretsPath}`);
+  console.log(`[ecosystem] File length: ${raw.length} chars`);
+  raw.split('\n').forEach((line, idx) => {
     line = line.trim();
     if (line && !line.startsWith('#')) {
       const eq = line.indexOf('=');
@@ -14,10 +17,19 @@ try {
         const key = line.slice(0, eq).trim();
         const val = line.slice(eq + 1).trim();
         envPairs[key] = val;
+        const displayVal = val.length > 10 ? val.slice(0, 4) + '…' + val.slice(-4) : val;
+        console.log(`[ecosystem]   ${key} = ${displayVal}`);
       }
     }
   });
-} catch {
+  if (!envPairs.SUPABASE_URL) {
+    console.error('[ecosystem] WARNING: SUPABASE_URL not found in secrets file!');
+  }
+  if (!envPairs.SUPABASE_ANON_KEY) {
+    console.error('[ecosystem] WARNING: SUPABASE_ANON_KEY not found in secrets file!');
+  }
+} catch (err) {
+  console.error(`[ecosystem] ERROR reading secrets: ${err.message}`);
   // Secrets file not found locally; empty envPairs (safe fallback).
 }
 
