@@ -1,6 +1,3 @@
-const dotenv = require('dotenv');
-dotenv.config({ path: '/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets' });
-
 module.exports = {
   apps: [
     {
@@ -10,6 +7,7 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
+      env_file: '/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets',
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
@@ -24,6 +22,7 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
+      env_file: '/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets',
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
