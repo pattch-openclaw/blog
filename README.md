@@ -49,10 +49,12 @@ Then, commit the updated snapshot file inside the `tests/` directory alongside y
 
 This blog is configured to be self-hosted using `@sveltejs/adapter-node`, deployed via a GitHub Actions Self-Hosted Runner, managed by PM2, and served securely via Cloudflare Tunnels.
 
-### The Dual-Environment Architecture
-We run two lightweight production instances concurrently using PM2:
-* **Production (`sams-blog-prod`)**: Runs on `Port 3000`. Environment variable `SHOW_DRAFTS=false`. Any markdown file with `published: false` in the frontmatter returns a 404.
-* **Staging (`sams-blog-staging`)**: Runs on `Port 3001`. Environment variable `SHOW_DRAFTS=true`. Drafts are fully visible here to preview exactly how they look.
+### The Three-Environment Architecture
+We run three lightweight instances concurrently using PM2. All three read `SUPABASE_URL` and `SUPABASE_ANON_KEY` from the same `.blog-secrets` file at startup — the secrets are shared across all environments.
+
+* **Production (`sams-blog-prod`)**: Runs on `Port 3000`. `NODE_ENV=production`, `SHOW_DRAFTS=false`. Serves end users on the public internet. No admin pages visible. Uses `CONTENT_STORE=git` (default).
+* **Staging (`sams-blog-staging`)**: Runs on `Port 3001`. `NODE_ENV=production`, `SHOW_DRAFTS=true`. Includes admin pages + draft posts visible. Behind Cloudflare Access login — not public. Uses `CONTENT_STORE=git` (default).
+* **Sandbox (`sams-blog-sandbox`)**: Runs on `Port 3002`. `NODE_ENV=production`, `SHOW_DRAFTS=true`, `CONTENT_STORE=supabase`. Includes admin pages + draft posts visible. Behind Cloudflare Access login — not public. Uses the Supabase datastore (not git-based content). For testing the Supabase-backed content layer.
 
 ### Step 1: Set Up the GitHub Actions Self-Hosted Runner
 1. Go to this repository on GitHub -> **Settings** -> **Actions** -> **Runners**.
@@ -77,6 +79,7 @@ To update secrets after changing `.blog-secrets`:
 ```bash
 pm2 restart sams-blog-prod
 pm2 restart sams-blog-staging
+pm2 restart sams-blog-sandbox
 ```
 
 ### Step 3: Serve Externally with Cloudflare Tunnels
@@ -86,12 +89,12 @@ Cloudflare Tunnels expose your local PM2 services securely.
 2. Route the Production traffic:
    - **Public Hostname**: `blog.yourdomain.com` 
    - **Service**: `http://localhost:3000`
-3. Route the Staging traffic (Optional but recommended):
-   - **Public Hostname**: `drafts.yourdomain.com` 
-   - **Service**: `http://localhost:3001`
-   - **Security**: Put this staging domain behind **Cloudflare Access** so only your authenticated email can view it!
+3. Route the Sandbox traffic (Optional but recommended):
+   - **Public Hostname**: `sandbox.yourdomain.com`
+   - **Service**: `http://localhost:3002`
+   - **Security**: Put this sandbox domain behind **Cloudflare Access** so only your authenticated email can view it!
 
-Every time a commit is pushed to the `main` branch, the self-hosted runner will automatically rebuild the site and reload both PM2 instances seamlessly!
+Every time a commit is pushed to the `main` branch, the self-hosted runner will automatically rebuild the site and reload all three PM2 instances seamlessly!
 
 ---
 
