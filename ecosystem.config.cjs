@@ -14,7 +14,8 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3000,
         SHOW_DRAFTS: 'false',
-        BODY_SIZE_LIMIT: '52428800'
+        BODY_SIZE_LIMIT: '52428800',
+        SUPABASE_URL_TEST: 'hardcoded_test_value_12345'
       }
     },
     {
@@ -28,7 +29,8 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3001,
         SHOW_DRAFTS: 'true',
-        BODY_SIZE_LIMIT: '52428800'
+        BODY_SIZE_LIMIT: '52428800',
+        SUPABASE_URL_TEST: 'hardcoded_test_value_12345'
       }
     }
   ]
