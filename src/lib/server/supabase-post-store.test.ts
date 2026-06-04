@@ -125,20 +125,25 @@ function buildMockDb(rows: Post[]) {
 								created_at: new Date().toISOString(),
 								updated_at: new Date().toISOString(),
 							};
-							return { data: newRow, error: null };
+							// Real Supabase .insert().select() returns an array of inserted rows
+							return { data: [newRow], error: null };
 						},
 					};
 				},
 				update(record: Record<string, unknown>) {
 					state.updateData = record;
 					return {
-						eq(_col: string, _val: unknown) {
+						eq(col: string, val: unknown) {
+							state.eqCol = col;
+							state.eqVal = String(val);
 							return {
 								select() {
 									const found = getSingle();
+									if (!found) return { data: [], error: null };
 									const updated = { ...found, ...record } as Record<string, unknown>;
 									updated.id = 'updated-id';
-									return { data: updated, error: null };
+									// Real Supabase .update().eq().select() returns an array of updated rows
+									return { data: [updated], error: null };
 								},
 							};
 						},

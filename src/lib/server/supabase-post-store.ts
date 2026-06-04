@@ -1,6 +1,7 @@
 import type { Post, PostStore } from './posts-store';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseClient } from './supabase-client';
+import { logger } from '$lib/logging';
 
 /**
  * Row shape returned from the Supabase `posts` table.
@@ -145,7 +146,15 @@ export class SupabasePostStore implements PostStore {
 			throw new Error(`Failed to save post to Supabase: ${result.error.message}`);
 		}
 
-		return this.mapRow(result.data as SupabasePostRow);
+		if (!result.data || result.data.length === 0) {
+			throw new Error('Supabase insert returned no data');
+		}
+
+		// .insert().select() returns an array of inserted rows;
+		// take the first element instead of passing the whole array.
+		const insertedRow = result.data[0] as SupabasePostRow;
+		logger.info(`Supabase savePost inserted row: ${insertedRow.id} (slug: ${insertedRow.slug})`);
+		return this.mapRow(insertedRow);
 	}
 
 	async updatePost(slug: string, updates: Partial<Pick<Post, 'title' | 'description' | 'content' | 'published' | 'author' | 'tags'>>): Promise<Post> {
@@ -167,7 +176,11 @@ export class SupabasePostStore implements PostStore {
 			throw new Error(`Failed to update post "${slug}" in Supabase: ${result.error.message}`);
 		}
 
-		return this.mapRow(result.data as SupabasePostRow);
+		if (!result.data || result.data.length === 0) {
+			throw new Error(`Supabase update returned no data for slug: ${slug}`);
+		}
+
+		return this.mapRow(result.data[0] as SupabasePostRow);
 	}
 
 	async deletePost(slug: string): Promise<void> {
