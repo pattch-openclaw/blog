@@ -1,5 +1,5 @@
 import { fail } from '@sveltejs/kit';
-import { getStore } from '$lib/server/posts';
+import { getStore, getWriteStore } from '$lib/server/posts';
 
 export const actions = {
 	publish: async ({ request }) => {
@@ -10,7 +10,7 @@ export const actions = {
 			return fail(400, { error: 'Missing slug' });
 		}
 
-		const store = await getStore();
+		const store = await getWriteStore();
 		try {
 			const post = await store.updatePost(slug, { published: true });
 			
@@ -37,7 +37,7 @@ export const actions = {
 			return fail(400, { error: 'Missing slug' });
 		}
 
-		const store = await getStore();
+		const store = await getWriteStore();
 		try {
 			const post = await store.updatePost(slug, { published: false });
 			

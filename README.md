@@ -73,7 +73,18 @@ pm2 save
 pm2 startup # Follow the instructions it outputs to run PM2 on boot
 ```
 
-The ecosystem config uses **dotenv** to load `SUPABASE_URL` and `SUPABASE_ANON_KEY` from the `.blog-secrets` file on the host at startup. No manual env sourcing is needed. Both `sams-blog-prod` and `sams-blog-staging` pick up the credentials automatically.
+The ecosystem config uses **dotenv** to load `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_KEY` from the `.blog-secrets` file on the host at startup. No manual env sourcing is needed. All three environments pick up the credentials automatically.
+
+⚠️ **Secrets file format:** The `.blog-secrets` file must use plain `KEY=***` lines (one per line). Do **not** use `export KEY=***` — the parser splits on the first `=` and takes everything after it as the value, so the `export` prefix would become part of the key and silently break credential loading. Comments starting with `#` are supported and ignored. Blank lines are also ignored.
+
+Example format:
+```
+SUPABASE_URL=https://abc123.supabase.co
+SUPABASE_ANON_KEY=eyJhbG…9...
+SUPABASE_SERVICE_KEY=eyJhbG…xyz...
+```
+
+The **service key** is used internally for admin write operations (create, update, delete posts). It bypasses RLS entirely on the Supabase side, so you don't need RLS policies for writes.— only for read filtering if desired. The **anon key** is used for public read operations (listing posts, fetching post content).
 
 To update secrets after changing `.blog-secrets`:
 ```bash

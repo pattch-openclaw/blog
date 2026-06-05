@@ -2,6 +2,7 @@ import { getContentStore } from './posts-store';
 import type { PostStore } from './posts-store';
 
 let _store: PostStore | null = null;
+let _storeServiceKey: PostStore | null = null;
 
 async function getStore(): Promise<PostStore> {
 	if (_store) return _store;
@@ -20,6 +21,24 @@ async function getStore(): Promise<PostStore> {
 	return _store;
 }
 
+/**
+ * Get a write-capable store. For Supabase, this uses the service-role key (bypasses RLS).
+ * For other stores, falls back to the regular store.
+ */
+async function getWriteStore(): Promise<PostStore> {
+	if (_storeServiceKey) return _storeServiceKey;
+	
+	const provider = getContentStore();
+	if (provider === 'supabase') {
+		const { SupabasePostStore } = await import('./supabase-post-store');
+		_storeServiceKey = new SupabasePostStore(undefined, true);
+	} else {
+		// For git/test-mock, write/store are the same
+		_storeServiceKey = await getStore();
+	}
+	return _storeServiceKey;
+}
+
 export async function getPosts() {
 	const store = await getStore();
 	return store.listPosts();
@@ -35,4 +54,4 @@ export async function getAllTags(): Promise<string[]> {
 	return Array.from(tagSet).sort();
 }
 
-export { getStore, getContentStore };
+export { getStore, getWriteStore, getContentStore };
