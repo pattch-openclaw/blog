@@ -21,6 +21,10 @@
 			<code>{data.supabaseAnonKey}</code>
 		</div>
 		<div class="field">
+			<label>Supabase Service Key</label>
+			<code>{data.supabaseServiceKey}</code>
+		</div>
+		<div class="field">
 			<label>SUPABASE_URL_TEST (hardcoded)</label>
 			<code>{data.supabaseUrlTest}</code>
 		</div>
