@@ -31,7 +31,7 @@
         </nav>
         
         <h1>System Logs</h1>
-        <p class="subtitle">Recent PM2 logs for the staging environment.</p>
+        <p class="subtitle">Recent logs for <strong>{data.appName}</strong> (CONTENT_STORE={data.store}).</p>
 
         <div class="logs-section">
             <div class="log-panel">
