@@ -37,6 +37,7 @@ module.exports = {
         BODY_SIZE_LIMIT: '52428800',
         SUPABASE_URL: envPairs.SUPABASE_URL || '',
         SUPABASE_ANON_KEY: envPairs.SUPABASE_ANON_KEY || '',
+        SUPABASE_SERVICE_KEY: envPairs.SUPABASE_SERVICE_KEY || '',
         SUPABASE_URL_TEST: 'hardcoded_test_value_12345'
       }
     },
@@ -54,6 +55,7 @@ module.exports = {
         BODY_SIZE_LIMIT: '52428800',
         SUPABASE_URL: envPairs.SUPABASE_URL || '',
         SUPABASE_ANON_KEY: envPairs.SUPABASE_ANON_KEY || '',
+        SUPABASE_SERVICE_KEY: envPairs.SUPABASE_SERVICE_KEY || '',
         SUPABASE_URL_TEST: 'hardcoded_test_value_12345'
       }
     },
@@ -72,6 +74,7 @@ module.exports = {
         BODY_SIZE_LIMIT: '52428800',
         SUPABASE_URL: envPairs.SUPABASE_URL || '',
         SUPABASE_ANON_KEY: envPairs.SUPABASE_ANON_KEY || '',
+        SUPABASE_SERVICE_KEY: envPairs.SUPABASE_SERVICE_KEY || '',
         SUPABASE_URL_TEST: 'hardcoded_test_value_12345'
       }
     }
