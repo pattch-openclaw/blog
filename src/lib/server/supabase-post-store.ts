@@ -1,6 +1,6 @@
 import type { Post, PostStore } from './posts-store';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getSupabaseClient, getSupabaseServiceClient } from './supabase-client';
+import { getSupabaseClient } from './supabase-client';
 import { logger } from '$lib/logging';
 
 /**
@@ -72,27 +72,20 @@ interface SupabaseQueryClient {
 /**
  * PostStore implementation that reads/writes blog posts from a Supabase Postgres database.
  *
- * In production it reads SUPABASE_URL and SUPABASE_ANON_KEY from environment for reads,
- * or SUPABASE_SERVICE_KEY from environment for writes (if useServiceKey is true).
+ * Uses the anon/publishable key for all operations. RLS policies on the
+ * posts table control read/write access. The security boundary is the
+ * key itself — whoever has the key can read and write.
+ *
  * Accept an optional `db` parameter for testing — pass a mock instead.
- * Accept an optional `useServiceKey` flag to use the service-role key for all operations.
  */
 export class SupabasePostStore implements PostStore {
 	private readonly tableName = 'posts';
 	private readonly db: SupabaseQueryClient;
 
-	/**
-	 * @param db — optional mock db for testing
-	 * @param useServiceKey — if true, uses SUPABASE_SERVICE_KEY (bypasses RLS); defaults to false (uses anon key)
-	 */
-	constructor(db?: SupabaseQueryClient, useServiceKey?: boolean) {
+	constructor(db?: SupabaseQueryClient) {
 		if (db) {
 			this.db = db;
-		} else if (useServiceKey) {
-			// Production: use service-role key (bypasses RLS) — for admin writes
-			this.db = getSupabaseServiceClient() as unknown as SupabaseQueryClient;
 		} else {
-			// Production: use anon key — for public reads
 			this.db = getSupabaseClient() as unknown as SupabaseQueryClient;
 		}
 	}
@@ -139,21 +132,27 @@ export class SupabasePostStore implements PostStore {
 	}
 
 	async savePost(post: Omit<Post, 'date' | 'published'>): Promise<Post> {
+		const insertPayload = {
+			title: post.title,
+			slug: post.slug,
+			description: post.description,
+			content: post.content,
+			tags: post.tags,
+			published: false,
+		};
+		logger.info(`Supabase insert payload: ${JSON.stringify(insertPayload)}`);
+		
 		const result = this.db
 			.from(this.tableName)
-			.insert({
-				title: post.title,
-				slug: post.slug,
-				description: post.description,
-				content: post.content,
-				tags: post.tags,
-				published: false,
-			})
+			.insert(insertPayload)
 			.select();
 
 		if (result.error) {
+			logger.error(`Supabase insert error: ${JSON.stringify(result.error)}`);
 			throw new Error(`Failed to save post to Supabase: ${result.error.message}`);
 		}
+
+		logger.info(`Supabase insert result: data=${JSON.stringify(result.data)}, error=${JSON.stringify(result.error)}`);
 
 		if (!result.data || result.data.length === 0) {
 			// When RLS blocks the insert, Supabase returns { data: null, error: null }.

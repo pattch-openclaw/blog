@@ -17,7 +17,7 @@
 			<code>{data.supabaseUrl}</code>
 		</div>
 		<div class="field">
-			<label>Supabase Anon Key</label>
+			<label>Supabase Anon Key (used for all operations)</label>
 			<code>{data.supabaseAnonKey}</code>
 		</div>
 		<div class="field">

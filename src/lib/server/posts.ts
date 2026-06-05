@@ -2,7 +2,6 @@ import { getContentStore } from './posts-store';
 import type { PostStore } from './posts-store';
 
 let _store: PostStore | null = null;
-let _storeServiceKey: PostStore | null = null;
 
 async function getStore(): Promise<PostStore> {
 	if (_store) return _store;
@@ -22,21 +21,11 @@ async function getStore(): Promise<PostStore> {
 }
 
 /**
- * Get a write-capable store. For Supabase, this uses the service-role key (bypasses RLS).
- * For other stores, falls back to the regular store.
+ * Get a write-capable store. Since all operations use the same anon key,
+ * this is the same as getStore — RLS policies on the posts table control access.
  */
 async function getWriteStore(): Promise<PostStore> {
-	if (_storeServiceKey) return _storeServiceKey;
-	
-	const provider = getContentStore();
-	if (provider === 'supabase') {
-		const { SupabasePostStore } = await import('./supabase-post-store');
-		_storeServiceKey = new SupabasePostStore(undefined, true);
-	} else {
-		// For git/test-mock, write/store are the same
-		_storeServiceKey = await getStore();
-	}
-	return _storeServiceKey;
+	return getStore();
 }
 
 export async function getPosts() {
