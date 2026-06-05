@@ -75,6 +75,8 @@ pm2 startup # Follow the instructions it outputs to run PM2 on boot
 
 The ecosystem config uses **dotenv** to load `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_KEY` from the `.blog-secrets` file on the host at startup. No manual env sourcing is needed. All three environments pick up the credentials automatically.
 
+All three environments have access to **both** the Supabase service key (used for admin write operations) and anon key (used for public read operations). The service key bypasses RLS entirely on the Supabase side; the anon key is used for unauthenticated reads.
+
 ⚠️ **Secrets file format:** The `.blog-secrets` file must use plain `KEY=***` lines (one per line). Do **not** use `export KEY=***` — the parser splits on the first `=` and takes everything after it as the value, so the `export` prefix would become part of the key and silently break credential loading. Comments starting with `#` are supported and ignored. Blank lines are also ignored.
 
 Example format:
