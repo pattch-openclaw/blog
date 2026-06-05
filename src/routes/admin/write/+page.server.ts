@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import fs from 'fs/promises';
 import path from 'path';
-import { getStore, getPosts, getAllTags } from '$lib/server/posts';
+import { getStore, getWriteStore, getPosts, getAllTags } from '$lib/server/posts';
 import { logger } from '$lib/logging';
 
 export const load = async ({ url }) => {
@@ -75,7 +75,7 @@ export const actions = {
 			return fail(400, { error: 'Missing required fields (Title, Slug, and Content are required).' });
 		}
 
-		const store = await getStore();
+		const store = await getWriteStore();
 		try {
 			logger.info(`Saving post: ${slug} (author: ${author})`);
 			const post = await store.savePost({ title, slug, description, content, author, tags });

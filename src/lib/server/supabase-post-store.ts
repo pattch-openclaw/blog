@@ -1,6 +1,6 @@
 import type { Post, PostStore } from './posts-store';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getSupabaseClient } from './supabase-client';
+import { getSupabaseClient, getSupabaseServiceClient } from './supabase-client';
 import { logger } from '$lib/logging';
 
 /**
@@ -72,18 +72,27 @@ interface SupabaseQueryClient {
 /**
  * PostStore implementation that reads/writes blog posts from a Supabase Postgres database.
  *
- * In production it reads SUPABASE_URL and SUPABASE_ANON_KEY from environment.
+ * In production it reads SUPABASE_URL and SUPABASE_ANON_KEY from environment for reads,
+ * or SUPABASE_SERVICE_KEY from environment for writes (if useServiceKey is true).
  * Accept an optional `db` parameter for testing — pass a mock instead.
+ * Accept an optional `useServiceKey` flag to use the service-role key for all operations.
  */
 export class SupabasePostStore implements PostStore {
 	private readonly tableName = 'posts';
 	private readonly db: SupabaseQueryClient;
 
-	constructor(db?: SupabaseQueryClient) {
+	/**
+	 * @param db — optional mock db for testing
+	 * @param useServiceKey — if true, uses SUPABASE_SERVICE_KEY (bypasses RLS); defaults to false (uses anon key)
+	 */
+	constructor(db?: SupabaseQueryClient, useServiceKey?: boolean) {
 		if (db) {
 			this.db = db;
+		} else if (useServiceKey) {
+			// Production: use service-role key (bypasses RLS) — for admin writes
+			this.db = getSupabaseServiceClient() as unknown as SupabaseQueryClient;
 		} else {
-			// Production: use shared client factory
+			// Production: use anon key — for public reads
 			this.db = getSupabaseClient() as unknown as SupabaseQueryClient;
 		}
 	}
