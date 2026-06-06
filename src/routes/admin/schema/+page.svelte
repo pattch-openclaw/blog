@@ -31,7 +31,26 @@
 			<div class="info-bar">
 				<span><strong>URL:</strong> <code>{data.url}</code></span>
 				<span><strong>Key:</strong> <code>{data.anonKey}</code></span>
+				{#if data.jwtRole}<span><strong>JWT role:</strong> <code>{data.jwtRole}</code></span>{/if}
 			</div>
+
+			{#if data.diagError}
+				<div class="alert alert-error">
+					<strong>Diagnostic Error:</strong> {data.diagError}
+				</div>
+			{:else}
+				<div class="info-bar diag-bar">
+					<span><strong>posts visible to anon:</strong> <code>{data.dbPostsCount ?? '—'}</code> rows</span>
+					<span><strong>media_entries visible to anon:</strong> <code>{data.dbMediaCount ?? '—'}</code> rows</span>
+				</div>
+
+				{#if data.dbPostsRows.length > 0}
+					<div class="row-dump">
+						<h3>Rows visible to anon role (first 5):</h3>
+						<pre>{JSON.stringify(data.dbPostsRows.slice(0, 5), null, 2)}</pre>
+					</div>
+				{/if}
+			{/if}
 		{/if}
 	</div>
 </div>
@@ -110,5 +129,31 @@
 		background: #fef2f2;
 		border: 1px solid #fecaca;
 		color: #991b1b;
+	}
+
+	.diag-bar {
+		background: #f0f9ff;
+		border-color: #bae6fd;
+	}
+
+	.row-dump {
+		margin-top: 1rem;
+	}
+
+	.row-dump h3 {
+		font-size: 1rem;
+		color: #334155;
+		margin-bottom: 0.5rem;
+	}
+
+	.row-dump pre {
+		background: #1e1e1e;
+		color: #e2e8f0;
+		padding: 1rem;
+		border-radius: 6px;
+		overflow-x: auto;
+		font-size: 0.8rem;
+		white-space: pre-wrap;
+		word-break: break-all;
 	}
 </style>
