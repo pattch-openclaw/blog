@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '$lib/logging';
 
 export const load: PageServerLoad = async () => {
 	const url = process.env.SUPABASE_URL ?? '(not set)';
