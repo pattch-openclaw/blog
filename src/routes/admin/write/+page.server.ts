@@ -87,23 +87,8 @@ export const actions = {
 				logger.info(`Post updated successfully: ${slug}`);
 			} else {
 				logger.info(`Saving new post: ${slug} (author: ${author})`);
-				savedPost = await store.savePost({ title, slug, description, content, author, tags });
+				const savedPost = await store.savePost({ title, slug, description, content, author, tags });
 				logger.info(`Post saved successfully: ${slug}`);
-			}
-			// For new posts on git store, trigger git push for CI/CD
-			if (!existing) {
-				setTimeout(() => {
-					const { exec } = require('child_process');
-					exec('git add "src/routes/blog/' + slug + '/+page.md"');
-					exec('git commit --no-verify -m "content: add draft for ' + slug + '"');
-					exec('git push --no-verify origin main', (err: any) => {
-						if (err) {
-							logger.error(`Git push failed for ${slug}:`, err);
-						} else {
-							logger.info(`Git push succeeded for ${slug}`);
-						}
-					});
-				}, 1000);
 			}
 			
 			return { success: true, slug: savedPost.slug };

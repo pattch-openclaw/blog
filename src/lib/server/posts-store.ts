@@ -26,6 +26,9 @@ export interface PostStore {
 
 	/**
 	 * Create a new draft post. Sets published to false.
+	 * Handles any necessary post-save side effects internally (e.g., git sync).
+	 * The caller does not need to know about or trigger any post-save operations.
+	 * Returns the saved Post object.
 	 */
 	savePost(post: Omit<Post, 'date' | 'published'>): Promise<Post>;
 

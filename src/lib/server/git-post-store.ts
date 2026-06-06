@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { logger } from '$lib/logging';
 import type { Post, PostStore } from './posts-store';
 
 /**
@@ -76,6 +77,23 @@ ${content}
 
 		await fs.mkdir(postDir, { recursive: true });
 		await fs.writeFile(postFile, markdownContent, 'utf-8');
+
+		// Fire-and-forget git push so the running server picks up the change.
+		setTimeout(async () => {
+			const { exec } = await import('child_process');
+			exec(
+				`git add "src/routes/blog/${slug}/+page.md" && ` +
+				`git commit --no-verify -m "content: add draft for ${slug}" && ` +
+				`git push --no-verify origin main`,
+				(err: any) => {
+					if (err) {
+						logger.agent('gitPostStore.savePost', 'warn', `Git sync failed for ${slug}`, { slug });
+					} else {
+						logger.agent('gitPostStore.savePost', 'info', `Git sync succeeded for ${slug}`, { slug });
+					}
+				}
+			);
+		}, 1000);
 
 		return { title, slug, description, date, published: false, author, tags: tags || [], content };
 	}
