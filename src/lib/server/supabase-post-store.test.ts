@@ -89,10 +89,10 @@ function buildMockDb(rows: Post[]) {
 			});
 		},
 		maybeSingle() {
-			return {
+			return Promise.resolve({
 				data: getSingle(),
 				error: null,
-			};
+			});
 		},
 		// .eq() is called BEFORE .maybeSingle() in getPost: select().eq().maybeSingle()
 		// So selectResult needs eq() to return itself
@@ -126,8 +126,8 @@ function buildMockDb(rows: Post[]) {
 								created_at: new Date().toISOString(),
 								updated_at: new Date().toISOString(),
 							};
-							// Real Supabase .insert().select() returns an array of inserted rows
-							return { data: [newRow], error: null };
+							// Real Supabase .insert().select() returns a Promise
+							return Promise.resolve({ data: [newRow], error: null });
 						},
 					};
 				},
@@ -140,11 +140,11 @@ function buildMockDb(rows: Post[]) {
 							return {
 								select() {
 									const found = getSingle();
-									if (!found) return { data: [], error: null };
+									if (!found) return Promise.resolve({ data: [], error: null });
 									const updated = { ...found, ...record } as Record<string, unknown>;
 									updated.id = 'updated-id';
-									// Real Supabase .update().eq().select() returns an array of updated rows
-									return { data: [updated], error: null };
+									// Real Supabase .update().eq().select() returns a Promise
+									return Promise.resolve({ data: [updated], error: null });
 								},
 							};
 						},

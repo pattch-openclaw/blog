@@ -29,33 +29,33 @@ interface SupabaseQueryClient {
 				data: SupabasePostRow[] | null;
 				error: { message: string } | null;
 			}>;
-			maybeSingle<Row>(): {
+			maybeSingle<Row>(): Promise<{
 				data: Row | null;
 				error: { message: string } | null;
-			};
+			}>;
 			eq<Col>(col: Col, value: unknown): {
-				maybeSingle<Row>(): {
+				maybeSingle<Row>(): Promise<{
 					data: Row | null;
 					error: { message: string } | null;
-				};
-				select<Row>(): {
+				}>;
+				select<Row>(): Promise<{
 					data: Row | null;
 					error: { message: string } | null;
-				};
+				}>;
 			};
 		};
 		insert(record: Record<string, unknown>): {
-			select<Row>(): {
+			select<Row>(): Promise<{
 				data: Row[] | null;
 				error: { message: string } | null;
-			};
+			}>;
 		};
 		update(record: Record<string, unknown>): {
 			eq<Col>(col: Col, value: unknown): {
-				select<Row>(): {
+				select<Row>(): Promise<{
 					data: Row[] | null;
 					error: { message: string } | null;
-				};
+				}>;
 			};
 		};
 		delete(): {
@@ -141,7 +141,7 @@ export class SupabasePostStore implements PostStore {
 	async getPost(slug: string): Promise<Post | null> {
 		logger.agent('supabase.getPost', 'info', `Fetching post: ${slug}`);
 		
-		const result = this.db
+		const result = await this.db
 			.from(this.tableName)
 			.select('id, title, slug, description, content, tags, published, created_at, updated_at')
 			.eq('slug', slug)
@@ -172,7 +172,7 @@ export class SupabasePostStore implements PostStore {
 		};
 		logger.agent('supabase.savePost', 'info', `Saving post: ${post.slug}`, { title: post.title });
 		
-		const result = this.db
+		const result = await this.db
 			.from(this.tableName)
 			.insert(insertPayload)
 			.select();
@@ -209,7 +209,7 @@ export class SupabasePostStore implements PostStore {
 			...(updates.tags !== undefined && { tags: updates.tags }),
 		};
 
-		const result = this.db
+		const result = await this.db
 			.from(this.tableName)
 			.update(dbUpdates)
 			.eq('slug', slug)
