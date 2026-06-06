@@ -42,11 +42,33 @@ export const load: PageServerLoad = async () => {
 		}
 
 		if (!diagError) {
+			// Try count query (what the diagnostic page uses)
 			const { count: postsCount, data: postsData } = await client
 				.from('posts')
 				.select('*', { count: 'exact' });
 			dbPostsCount = postsCount ?? 0;
 			dbPostsRows = (postsData as Record<string, unknown>[]) || [];
+			
+			// Also try the exact column list that listPosts uses
+			const columnList = 'id,title,slug,description,content,tags,published,created_at,updated_at';
+			const columnResult = await client
+				.from('posts')
+				.select(columnList)
+				.order('created_at', { ascending: false });
+			logger.info(`/schema-diag: column list query returned ${columnResult.data ? (columnResult.data as any[]).length : 'null'} rows, error=${columnResult.error ? columnResult.error.message : 'none'}`);
+			
+			// Try raw REST with explicit headers
+			const rawHeaders = {
+				'apikey': anonKey,
+				'Authorization': `Bearer ${anonKey}`,
+				'Prefer': 'return=minimal',
+			};
+			const rawFetchResult = await fetch(
+				`${cleanUrl}/rest/v1/posts?select=*&order=created_at.desc`,
+				{ headers: rawHeaders }
+			);
+			const rawText = await rawFetchResult.text();
+			logger.info(`/schema-diag: raw REST GET returned status=${rawFetchResult.status}, body=${rawText}`);
 		}
 	}
 
