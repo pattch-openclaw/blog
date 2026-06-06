@@ -3,6 +3,7 @@ import { exec } from 'child_process';
 import { readFileSync } from 'fs';
 import { promisify } from 'util';
 import { getContentStore } from '$lib/server/posts-store';
+import { logger } from '$lib/logging';
 
 const execAsync = promisify(exec);
 
@@ -57,7 +58,8 @@ export const load = async () => {
             appName,
             store: getContentStore(),
             logs: { stdout, stderr },
-            secretsDump: readSecretsFile()
+            secretsDump: readSecretsFile(),
+            appLogs: logger.getAppLogs(300),
         };
     } catch (e: any) {
         throw error(500, `Failed to retrieve logs: ${e.message}`);

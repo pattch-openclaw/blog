@@ -104,19 +104,27 @@ export class SupabasePostStore implements PostStore {
 	}
 
 	async listPosts(): Promise<Post[]> {
+		logger.agent('supabase.listPosts', 'info', 'Fetching posts from Supabase');
+		
 		const result = this.db
 			.from(this.tableName)
 			.select('id, title, slug, description, content, tags, published, created_at, updated_at')
 			.order('created_at', { ascending: false });
 
 		if (result.error) {
-			throw new Error(`Failed to list posts from Supabase: ${result.error.message}`);
+			const msg = `Failed to list posts from Supabase: ${result.error.message}`;
+			logger.agent('supabase.listPosts', 'error', msg);
+			throw new Error(msg);
 		}
 
+		const count = (result.data ?? []).length;
+		logger.agent('supabase.listPosts', 'info', `Returned ${count} posts`);
 		return (result.data ?? []).map((row: SupabasePostRow) => this.mapRow(row));
 	}
 
 	async getPost(slug: string): Promise<Post | null> {
+		logger.agent('supabase.getPost', 'info', `Fetching post: ${slug}`);
+		
 		const result = this.db
 			.from(this.tableName)
 			.select('id, title, slug, description, content, tags, published, created_at, updated_at')
@@ -124,10 +132,16 @@ export class SupabasePostStore implements PostStore {
 			.maybeSingle<SupabasePostRow>();
 
 		if (result.error) {
-			throw new Error(`Failed to get post "${slug}" from Supabase: ${result.error.message}`);
+			const msg = `Failed to get post "${slug}" from Supabase: ${result.error.message}`;
+			logger.agent('supabase.getPost', 'error', msg, { slug });
+			throw new Error(msg);
 		}
 
-		if (!result.data) return null;
+		if (!result.data) {
+			logger.agent('supabase.getPost', 'info', `Post not found: ${slug}`);
+			return null;
+		}
+		logger.agent('supabase.getPost', 'info', `Found post: ${slug}`, { id: result.data.id });
 		return this.mapRow(result.data as SupabasePostRow);
 	}
 
@@ -140,7 +154,7 @@ export class SupabasePostStore implements PostStore {
 			tags: post.tags,
 			published: false,
 		};
-		logger.info(`Supabase insert payload: ${JSON.stringify(insertPayload)}`);
+		logger.agent('supabase.savePost', 'info', `Saving post: ${post.slug}`, { title: post.title });
 		
 		const result = this.db
 			.from(this.tableName)
@@ -148,29 +162,29 @@ export class SupabasePostStore implements PostStore {
 			.select();
 
 		if (result.error) {
-			logger.error(`Supabase insert error: ${JSON.stringify(result.error)}`);
-			throw new Error(`Failed to save post to Supabase: ${result.error.message}`);
+			const msg = `Failed to save post to Supabase: ${result.error.message}`;
+			logger.agent('supabase.savePost', 'error', msg, { slug: post.slug, error: result.error.message });
+			throw new Error(msg);
 		}
 
-		logger.info(`Supabase insert result: data=${JSON.stringify(result.data)}, error=${JSON.stringify(result.error)}`);
+		logger.agent('supabase.savePost', 'info', `Insert returned data: ${result.data ? JSON.stringify(result.data) : 'null'}`);
 
 		if (!result.data || result.data.length === 0) {
-			// When RLS blocks the insert, Supabase returns { data: null, error: null }.
-			// Surface a helpful message so Sam knows to check RLS policies.
+			logger.agent('supabase.savePost', 'error', 'Supabase insert returned no data (likely RLS block)', { slug: post.slug });
 			throw new Error(
 				`Supabase insert returned no data for post "${post.slug}". ` +
 				'This usually means RLS is blocking the insert. Check the /admin/schema page for RLS policy status.'
 			);
 		}
 
-		// .insert().select() returns an array of inserted rows;
-		// take the first element instead of passing the whole array.
 		const insertedRow = result.data[0] as SupabasePostRow;
-		logger.info(`Supabase savePost inserted row: ${insertedRow.id} (slug: ${insertedRow.slug})`);
+		logger.agent('supabase.savePost', 'info', `Inserted post: ${insertedRow.id} (slug: ${insertedRow.slug})`);
 		return this.mapRow(insertedRow);
 	}
 
 	async updatePost(slug: string, updates: Partial<Pick<Post, 'title' | 'description' | 'content' | 'published' | 'author' | 'tags'>>): Promise<Post> {
+		logger.agent('supabase.updatePost', 'info', `Updating post: ${slug}`, { updates: Object.keys(updates) });
+
 		const dbUpdates: Record<string, unknown> = {
 			...(updates.title !== undefined && { title: updates.title }),
 			...(updates.description !== undefined && { description: updates.description }),
@@ -186,27 +200,37 @@ export class SupabasePostStore implements PostStore {
 			.select();
 
 		if (result.error) {
-			throw new Error(`Failed to update post "${slug}" in Supabase: ${result.error.message}`);
+			const msg = `Failed to update post "${slug}" in Supabase: ${result.error.message}`;
+			logger.agent('supabase.updatePost', 'error', msg, { slug });
+			throw new Error(msg);
 		}
 
 		if (!result.data || result.data.length === 0) {
+			logger.agent('supabase.updatePost', 'error', 'Supabase update returned no data (likely RLS block)', { slug });
 			throw new Error(
 				`Supabase update returned no data for slug: ${slug}. ` +
 				'This usually means RLS is blocking the update. Check the /admin/schema page for RLS policy status.'
 			);
 		}
 
+		logger.agent('supabase.updatePost', 'info', `Updated post: ${slug}`, { id: (result.data[0] as SupabasePostRow).id });
 		return this.mapRow(result.data[0] as SupabasePostRow);
 	}
 
 	async deletePost(slug: string): Promise<void> {
+		logger.agent('supabase.deletePost', 'info', `Deleting post: ${slug}`);
+
 		const { error } = await this.db
 			.from(this.tableName)
 			.delete()
 			.eq('slug', slug)();
 
 		if (error) {
-			throw new Error(`Failed to delete post "${slug}" from Supabase: ${error.message}`);
+			const msg = `Failed to delete post "${slug}" from Supabase: ${error.message}`;
+			logger.agent('supabase.deletePost', 'error', msg, { slug });
+			throw new Error(msg);
 		}
+
+		logger.agent('supabase.deletePost', 'info', `Deleted post: ${slug}`);
 	}
 }
