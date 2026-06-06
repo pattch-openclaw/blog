@@ -12,12 +12,16 @@ let _supabaseClient: SupabaseClient | null = null;
 export function getSupabaseClient(): SupabaseClient {
 	if (_supabaseClient) return _supabaseClient;
 	
-	const url = process.env.SUPABASE_URL;
+	let url = process.env.SUPABASE_URL;
 	const anonKey = process.env.SUPABASE_ANON_KEY;
 	
 	if (!url || !anonKey) {
 		throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY environment variables are required');
 	}
+	
+	// Strip trailing /rest/v1 or /rest/v1/ if accidentally included in the config.
+	// createClient() already appends /rest/v1 internally.
+	url = url.replace(/\/rest\/v1\/?$/, '');
 	
 	_supabaseClient = createClient(url, anonKey);
 	return _supabaseClient;
