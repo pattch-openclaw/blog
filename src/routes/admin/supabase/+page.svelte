@@ -9,25 +9,15 @@
 
 <div class="supabase-config">
 	<h1>Supabase Configuration</h1>
-	<p>Current Supabase credentials loaded from the secrets file.</p>
+	<p>Raw environment variables loaded from .blog-secrets at service startup.</p>
 
 	<div class="credentials">
+		{#each Object.entries(data.envPairs) as [key, value]}
 		<div class="field">
-			<label>Supabase URL</label>
-			<code>{data.supabaseUrl}</code>
+			<label>{key}</label>
+			<code>{value}</code>
 		</div>
-		<div class="field">
-			<label>Supabase Anon Key (used for all operations)</label>
-			<code>{data.supabaseAnonKey}</code>
-		</div>
-		<div class="field">
-			<label>Supabase Service Key</label>
-			<code>{data.supabaseServiceKey}</code>
-		</div>
-		<div class="field">
-			<label>SUPABASE_URL_TEST (hardcoded)</label>
-			<code>{data.supabaseUrlTest}</code>
-		</div>
+		{/each}
 	</div>
 </div>
 

@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { exec } from 'child_process';
+import { readFileSync } from 'fs';
 import { promisify } from 'util';
 import { getContentStore } from '$lib/server/posts-store';
 
@@ -55,9 +56,20 @@ export const load = async () => {
         return {
             appName,
             store: getContentStore(),
-            logs: { stdout, stderr }
+            logs: { stdout, stderr },
+            secretsDump: readSecretsFile()
         };
     } catch (e: any) {
         throw error(500, `Failed to retrieve logs: ${e.message}`);
     }
 };
+
+function readSecretsFile(): string {
+    const secretsPath = '/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets';
+    try {
+        const raw = readFileSync(secretsPath, 'utf-8');
+        return '--- .blog-secrets contents ---\n' + raw;
+    } catch {
+        return '--- .blog-secrets ---\nFile not found at ' + secretsPath;
+    }
+}

@@ -43,6 +43,11 @@
                 <h3>Standard Logs</h3>
                 <pre class="log-viewer std-log"><code>{formatLogs(data.logs.stdout)}</code></pre>
             </div>
+
+            <div class="log-panel">
+                <h3>Secrets File Dump (.blog-secrets)</h3>
+                <pre class="log-viewer secrets-dump"><code>{data.secretsDump}</code></pre>
+            </div>
         </div>
     </div>
 </div>
@@ -121,5 +126,11 @@
     .std-log {
         color: #d4d4d4;
         border: 1px solid #333;
+    }
+
+    .secrets-dump {
+        color: #569cd6;
+        border: 1px solid #1a3a5c;
+        background: #0d1b2a;
     }
 </style>
