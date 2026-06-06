@@ -1,6 +1,13 @@
 <script lang="ts">
     let { data } = $props();
 
+    function formatAppLog(log: typeof data.appLogs[0]): string {
+        const ts = new Date(log.ts).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+        const level = log.level.toUpperCase().padStart(5);
+        const op = log.op.padEnd(25);
+        return `${ts} [${level}] ${op} ${log.message}${log.target ? ' → ' + log.target : ''}${log.context ? ' ' + JSON.stringify(log.context) : ''}`;
+    }
+
     function formatLogs(raw: string): string {
         if (!raw) return 'No logs available.';
         // Strip ANSI escape codes (belt-and-suspenders with server-side strip)
@@ -35,12 +42,21 @@
 
         <div class="logs-section">
             <div class="log-panel">
-                <h3>Error Logs</h3>
+                <h3>Application Logs (Supabase & store ops)</h3>
+                <pre class="log-viewer app-log-viewer" id="app-logs">{
+                    data.appLogs.length > 0
+                        ? data.appLogs.map(l => formatAppLog(l)).join('\n')
+                        : 'No application-level log entries yet.'
+                }</pre>
+            </div>
+
+            <div class="log-panel">
+                <h3>Error Logs (PM2)</h3>
                 <pre class="log-viewer error-log"><code>{formatLogs(data.logs.stderr)}</code></pre>
             </div>
             
             <div class="log-panel">
-                <h3>Standard Logs</h3>
+                <h3>Standard Logs (PM2)</h3>
                 <pre class="log-viewer std-log"><code>{formatLogs(data.logs.stdout)}</code></pre>
             </div>
 
@@ -132,5 +148,11 @@
         color: #569cd6;
         border: 1px solid #1a3a5c;
         background: #0d1b2a;
+    }
+
+    .app-log-viewer {
+        color: #7ee787;
+        border: 1px solid #0f3d0f;
+        background: #0a1a0a;
     }
 </style>
