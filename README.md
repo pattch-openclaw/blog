@@ -142,7 +142,7 @@ tags:                 # YAML array or comma-separated, empty if missing
 - ✅ Existing posts parse without `author`/`tags` (default to `"sam"` / `[]`)
 
 **Next steps (pending):**
-- Supabase `SupabasePostStore` needs to handle `author`/`tags` when Phase 2 resumes
+- Supabase `SupabasePostStore` handles `author`/`tags` — ready when Phase 2 resumes
 
 ## Long-Term Goals (prioritized as we go)
 - **Decouple blog content from server source code** — migrating content from git-based flat files → Supabase (with git-history fallback), then Supabase only (see migration plan below)
@@ -208,12 +208,13 @@ tags:                 # YAML array or comma-separated, empty if missing
 - **No change to actual data yet** — everything still lives in git history
 - **Bonus fixes during Phase 1:** Fixed `parsePost` to handle both quoted and unquoted frontmatter fields (title, description, published) — posts with unquoted descriptions were parsing as blank
 
-#### Phase 2 — Add Supabase + fallback (dual-path) ⏳ IN PROGRESS
+#### Phase 2 — Add Supabase + fallback (dual-path) ✅ IN PROGRESS
 - **Supabase project setup:** ✅ Complete
   - `posts` and `media_entries` tables created with RLS enabled (public read access)
   - Storage buckets: `images`, `audio`, `fonts`
   - `@supabase/supabase-js` installed on host
   - Credentials managed via `/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets` (manually parsed at PM2 startup via `ecosystem.config.cjs`)
+- **Supabase post store read/write:** ✅ Working — `SupabasePostStore` successfully lists, reads, writes, updates, and deletes posts on sandbox via the anon key. RLS allows public read; writes return inserted rows. See commit `1a282a8` (await fix for Supabase JS v2 async chain) and PR #33 (interface type alignment).
 
   **⚠️ Secrets file format:** The `.blog-secrets` file must use plain `KEY=VALUE` lines (one per line). Do **not** use `export KEY=VALUE` — the parser splits on the first `=` and takes everything after it as the value, so the `export` prefix would become part of the key and silently break credential loading. Comments starting with `#` are supported and ignored. Blank lines are also ignored.
 
@@ -224,7 +225,7 @@ tags:                 # YAML array or comma-separated, empty if missing
   ```
 
 - **Supabase runtime access:** ✅ Verified — both `sams-blog-prod` and `sams-blog-staging` successfully read `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `.blog-secrets` at startup. The `/admin/supabase` admin page displays the injected values correctly.
-- **Pending:** Create `SupabasePostStore` implementation, `FallingBackPostStore`, staging banner, E2E validation
+- **Pending:** `FallingBackPostStore`, staging banner, E2E validation
 
 #### Phase 3 — Supabase-only (remove git content layer)
 - Once validated, switch to Supabase-only mode
