@@ -24,18 +24,15 @@ interface SupabasePostRow {
  */
 interface SupabaseQueryClient {
 	from(table: string): {
-		// select().order() for list queries
 		select<Columns>(cols?: string): {
-			order<Col>(col: Col, opts: { ascending: boolean }): {
+			order<Col>(col: Col, opts: { ascending: boolean }): Promise<{
 				data: SupabasePostRow[] | null;
 				error: { message: string } | null;
-			};
-			// select().eq().maybeSingle() for get queries
+			}>;
 			maybeSingle<Row>(): {
 				data: Row | null;
 				error: { message: string } | null;
 			};
-			// select().eq() returns this same object so maybeSingle() can follow
 			eq<Col>(col: Col, value: unknown): {
 				maybeSingle<Row>(): {
 					data: Row | null;
@@ -49,14 +46,14 @@ interface SupabaseQueryClient {
 		};
 		insert(record: Record<string, unknown>): {
 			select<Row>(): {
-				data: Row | null;
+				data: Row[] | null;
 				error: { message: string } | null;
 			};
 		};
 		update(record: Record<string, unknown>): {
 			eq<Col>(col: Col, value: unknown): {
 				select<Row>(): {
-					data: Row | null;
+					data: Row[] | null;
 					error: { message: string } | null;
 				};
 			};
@@ -106,35 +103,39 @@ export class SupabasePostStore implements PostStore {
 	async listPosts(): Promise<Post[]> {
 		logger.agent('supabase.listPosts', 'info', 'Fetching posts from Supabase');
 		
-		const result = this.db
+		const { data, error } = await this.db
 			.from(this.tableName)
 			.select('id, title, slug, description, content, tags, published, created_at, updated_at')
 			.order('created_at', { ascending: false });
 
-		// Debug: also try raw query with '*' to see if column list matters
-		const rawResult = this.db
-			.from(this.tableName)
-			.select('*')
-			.order('created_at', { ascending: false });
-		
-		if (rawResult.error) {
-			logger.agent('supabase.listPosts', 'error', `Raw SELECT * error: ${rawResult.error.message}`);
-		}
-		logger.agent('supabase.listPosts', 'info', `Raw SELECT * returned ${rawResult.data ? (rawResult.data as any[]).length : 'null'} rows, error=${rawResult.error ? rawResult.error.message : 'none'}`);
-
-		if (result.error) {
-			const msg = `Failed to list posts from Supabase: ${result.error.message}`;
+		if (error) {
+			const msg = `Failed to list posts from Supabase: ${error.message}`;
 			logger.agent('supabase.listPosts', 'error', msg);
 			throw new Error(msg);
 		}
 
-		const count = (result.data ?? []).length;
+		const count = (data ?? []).length;
 		logger.agent('supabase.listPosts', 'info', `Returned ${count} posts`);
 		
-		// Debug: log the full raw response to see what Supabase actually returned
-		const rawResponse = JSON.stringify(result);
-		logger.agent('supabase.listPosts', 'info', `Full response: ${rawResponse}`);
-		return (result.data ?? []).map((row: SupabasePostRow) => this.mapRow(row));
+		// Log each row to confirm column shapes
+		if (data) {
+			for (const row of data as SupabasePostRow[]) {
+				logger.agent('supabase.listPosts', 'info', `Row: id=${row.id}, slug=${row.slug}, published=${row.published}`, { row });
+			}
+		}
+		
+		// Debug: also try raw query with '*' to see if column list matters
+		const { data: rawResultData, error: rawResultError } = await this.db
+			.from(this.tableName)
+			.select('*')
+			.order('created_at', { ascending: false });
+		
+		if (rawResultError) {
+			logger.agent('supabase.listPosts', 'error', `Raw SELECT * error: ${rawResultError.message}`);
+		}
+		logger.agent('supabase.listPosts', 'info', `Raw SELECT * returned ${rawResultData ? (rawResultData as any[]).length : 'null'} rows, error=${rawResultError ? rawResultError.message : 'none'}`);
+
+		return (data ?? []).map((row: SupabasePostRow) => this.mapRow(row));
 	}
 
 	async getPost(slug: string): Promise<Post | null> {

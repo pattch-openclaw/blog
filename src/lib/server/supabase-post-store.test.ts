@@ -82,10 +82,11 @@ function buildMockDb(rows: Post[]) {
 	const selectResult: any = {
 		order(_col: string, opts: { ascending: boolean }) {
 			state.orderAsc = opts.ascending;
-			return {
+			// In Supabase JS v2, .order() returns a Promise
+			return Promise.resolve({
 				data: getList(),
 				error: null,
-			};
+			});
 		},
 		maybeSingle() {
 			return {
