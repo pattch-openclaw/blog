@@ -12,12 +12,30 @@
 	<p>Raw environment variables loaded from .blog-secrets at service startup.</p>
 
 	<div class="credentials">
-		{#each Object.entries(data.envPairs) as [key, value]}
 		<div class="field">
-			<label>{key}</label>
-			<code>{value}</code>
+			<label>JWT Role (decoded from SUPABASE_ANON_KEY)</label>
+			<code>{data.jwtRole ?? '(unable to decode)'}</code>
 		</div>
-		{/each}
+		<div class="field">
+			<label>SUPABASE_URL</label>
+			<code>{data.envPairs.SUPABASE_URL}</code>
+		</div>
+		<div class="field">
+			<label>SUPABASE_ANON_KEY (preview)</label>
+			<code>{data.envPairs.SUPABASE_ANON_KEY}</code>
+		</div>
+		<div class="field">
+			<label>SUPABASE_ANON_KEY (full)</label>
+			<code>{data.envPairs.SUPABASE_ANON_KEY_FULL}</code>
+		</div>
+		<div class="field">
+			<label>SUPABASE_SERVICE_KEY (preview)</label>
+			<code>{data.envPairs.SUPABASE_SERVICE_KEY}</code>
+		</div>
+		<div class="field">
+			<label>SUPABASE_URL_TEST (hardcoded)</label>
+			<code>{data.envPairs.SUPABASE_URL_TEST}</code>
+		</div>
 	</div>
 </div>
 
