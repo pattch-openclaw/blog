@@ -77,25 +77,36 @@ export const actions = {
 
 		const store = await getWriteStore();
 		try {
-			logger.info(`Saving post: ${slug} (author: ${author})`);
-			const post = await store.savePost({ title, slug, description, content, author, tags });
-			logger.info(`Post saved successfully: ${slug}`);
+			// Check if this is an existing post (edit mode)
+			const existing = await store.getPost(slug);
+			let savedPost;
+
+			if (existing) {
+				logger.info(`Updating existing post: ${slug} (author: ${author})`);
+				savedPost = await store.updatePost(slug, { title, description, content, author, tags });
+				logger.info(`Post updated successfully: ${slug}`);
+			} else {
+				logger.info(`Saving new post: ${slug} (author: ${author})`);
+				savedPost = await store.savePost({ title, slug, description, content, author, tags });
+				logger.info(`Post saved successfully: ${slug}`);
+			}
+			// For new posts on git store, trigger git push for CI/CD
+			if (!existing) {
+				setTimeout(() => {
+					const { exec } = require('child_process');
+					exec('git add "src/routes/blog/' + slug + '/+page.md"');
+					exec('git commit --no-verify -m "content: add draft for ' + slug + '"');
+					exec('git push --no-verify origin main', (err: any) => {
+						if (err) {
+							logger.error(`Git push failed for ${slug}:`, err);
+						} else {
+							logger.info(`Git push succeeded for ${slug}`);
+						}
+					});
+				}, 1000);
+			}
 			
-			// Trigger git push in the background to start CI/CD
-			setTimeout(() => {
-				const { exec } = require('child_process');
-				exec('git add "src/routes/blog/' + slug + '/+page.md"');
-				exec('git commit --no-verify -m "content: add draft for ' + slug + '"');
-				exec('git push --no-verify origin main', (err: any) => {
-					if (err) {
-						logger.error(`Git push failed for ${slug}:`, err);
-					} else {
-						logger.info(`Git push succeeded for ${slug}`);
-					}
-				});
-			}, 1000);
-			
-			return { success: true, slug: post.slug };
+			return { success: true, slug: savedPost.slug };
 		} catch (e: any) {
 			logger.error(`Failed to save post ${slug}:`, e);
 			return fail(500, { error: `Failed to save or commit file: ${e.message}` });

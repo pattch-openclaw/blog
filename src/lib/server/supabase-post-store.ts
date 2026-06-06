@@ -206,6 +206,7 @@ export class SupabasePostStore implements PostStore {
 			...(updates.description !== undefined && { description: updates.description }),
 			...(updates.content !== undefined && { content: updates.content }),
 			...(updates.published !== undefined && { published: updates.published }),
+			...(updates.author !== undefined && { author: updates.author }),
 			...(updates.tags !== undefined && { tags: updates.tags }),
 		};
 

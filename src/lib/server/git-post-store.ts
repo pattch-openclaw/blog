@@ -84,11 +84,14 @@ ${content}
 		const postPath = path.join(this.baseDir, slug, '+page.md');
 		const postContentPath = path.join(this.baseDir, slug, 'post.md');
 		let targetPath: string;
+		let targetType: 'page' | 'content' = 'page';
 		try {
 			await fs.access(postContentPath);
 			targetPath = postContentPath;
+			targetType = 'content';
 		} catch {
 			targetPath = postPath;
+			targetType = 'page';
 		}
 		const fileData = await fs.readFile(targetPath, 'utf-8');
 		const match = fileData.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
@@ -134,7 +137,10 @@ ${content}
 		}
 
 		const newContent = `---\n${frontmatter}\n---\n${body}`;
-		await fs.writeFile(postPath, newContent, 'utf-8');
+		// Always write to post.md for consistency
+		const writePath = path.join(this.baseDir, slug, 'post.md');
+		await fs.mkdir(path.dirname(writePath), { recursive: true });
+		await fs.writeFile(writePath, newContent, 'utf-8');
 
 		return this.parsePost(newContent, slug)!;
 	}
