@@ -111,6 +111,17 @@ export class SupabasePostStore implements PostStore {
 			.select('id, title, slug, description, content, tags, published, created_at, updated_at')
 			.order('created_at', { ascending: false });
 
+		// Debug: also try raw query with '*' to see if column list matters
+		const rawResult = this.db
+			.from(this.tableName)
+			.select('*')
+			.order('created_at', { ascending: false });
+		
+		if (rawResult.error) {
+			logger.agent('supabase.listPosts', 'error', `Raw SELECT * error: ${rawResult.error.message}`);
+		}
+		logger.agent('supabase.listPosts', 'info', `Raw SELECT * returned ${rawResult.data ? (rawResult.data as any[]).length : 'null'} rows, error=${rawResult.error ? rawResult.error.message : 'none'}`);
+
 		if (result.error) {
 			const msg = `Failed to list posts from Supabase: ${result.error.message}`;
 			logger.agent('supabase.listPosts', 'error', msg);
@@ -119,6 +130,10 @@ export class SupabasePostStore implements PostStore {
 
 		const count = (result.data ?? []).length;
 		logger.agent('supabase.listPosts', 'info', `Returned ${count} posts`);
+		
+		// Debug: log the full raw response to see what Supabase actually returned
+		const rawResponse = JSON.stringify(result);
+		logger.agent('supabase.listPosts', 'info', `Full response: ${rawResponse}`);
 		return (result.data ?? []).map((row: SupabasePostRow) => this.mapRow(row));
 	}
 
