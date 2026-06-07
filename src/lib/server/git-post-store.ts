@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { logger } from '$lib/logging';
 import type { Post, PostStore } from './posts-store';
 
 /**
@@ -77,6 +78,23 @@ ${content}
 		await fs.mkdir(postDir, { recursive: true });
 		await fs.writeFile(postFile, markdownContent, 'utf-8');
 
+		// Fire-and-forget git push so the running server picks up the change.
+		setTimeout(async () => {
+			const { exec } = await import('child_process');
+			exec(
+				`git add "src/routes/blog/${slug}/+page.md" && ` +
+				`git commit --no-verify -m "content: add draft for ${slug}" && ` +
+				`git push --no-verify origin main`,
+				(err: any) => {
+					if (err) {
+						logger.agent('gitPostStore.savePost', 'warn', `Git sync failed for ${slug}`, { slug });
+					} else {
+						logger.agent('gitPostStore.savePost', 'info', `Git sync succeeded for ${slug}`, { slug });
+					}
+				}
+			);
+		}, 1000);
+
 		return { title, slug, description, date, published: false, author, tags: tags || [], content };
 	}
 
@@ -84,11 +102,14 @@ ${content}
 		const postPath = path.join(this.baseDir, slug, '+page.md');
 		const postContentPath = path.join(this.baseDir, slug, 'post.md');
 		let targetPath: string;
+		let targetType: 'page' | 'content' = 'page';
 		try {
 			await fs.access(postContentPath);
 			targetPath = postContentPath;
+			targetType = 'content';
 		} catch {
 			targetPath = postPath;
+			targetType = 'page';
 		}
 		const fileData = await fs.readFile(targetPath, 'utf-8');
 		const match = fileData.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
@@ -134,7 +155,10 @@ ${content}
 		}
 
 		const newContent = `---\n${frontmatter}\n---\n${body}`;
-		await fs.writeFile(postPath, newContent, 'utf-8');
+		// Always write to post.md for consistency
+		const writePath = path.join(this.baseDir, slug, 'post.md');
+		await fs.mkdir(path.dirname(writePath), { recursive: true });
+		await fs.writeFile(writePath, newContent, 'utf-8');
 
 		return this.parsePost(newContent, slug)!;
 	}
