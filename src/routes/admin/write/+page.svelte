@@ -46,6 +46,7 @@
 	let pending = $state(false);
 	let isSuccess = $state(false);
 	let successSlug = $state('');
+	let isSupabase = $state(false);
 
 	const handleEnhance = () => {
 		pending = true;
@@ -54,6 +55,7 @@
 			if (result.type === 'success' && result.data?.success) {
 				isSuccess = true;
 				successSlug = result.data.slug;
+				isSupabase = result.data.isSupabase ?? false;
 			}
 		};
 	};
@@ -102,12 +104,19 @@
 
 		{#if isSuccess}
 			<div class="success-panel">
-				<h2>🚀 Draft Saved & Pushed!</h2>
-				<div class="rebuild-banner">
-					<p><strong>CI/CD Pipeline is Rebuilding</strong></p>
-					<p>Please wait ~20 seconds for the server to restart, then check out your post:</p>
-					<a href="/blog/{successSlug}" class="btn-primary">Go to /blog/{successSlug}</a>
-				</div>
+				<h2>🚀 Draft Saved!</h2>
+				{#if isSupabase}
+					<div class="rebuild-banner">
+						<p>Your post is ready to view:</p>
+						<a href="/blog/{successSlug}" class="btn-primary">Go to /blog/{successSlug}</a>
+					</div>
+				{:else}
+					<div class="rebuild-banner">
+						<p><strong>CI/CD Pipeline is Rebuilding</strong></p>
+						<p>Please wait ~20 seconds for the server to restart, then check out your post:</p>
+						<a href="/blog/{successSlug}" class="btn-primary">Go to /blog/{successSlug}</a>
+					</div>
+				{/if}
 				<button class="btn-secondary" onclick={() => { isSuccess = false; title = ''; }}>Write another</button>
 			</div>
 		{:else}
