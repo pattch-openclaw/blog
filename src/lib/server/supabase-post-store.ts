@@ -14,6 +14,7 @@ interface SupabasePostRow {
 	content: string | null;
 	tags: string[] | null;
 	published: boolean | null;
+	author: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -94,7 +95,7 @@ export class SupabasePostStore implements PostStore {
 			description: row.description ?? '',
 			date: row.created_at ?? new Date().toISOString().split('T')[0],
 			published: row.published ?? false,
-			author: 'sam',
+			author: row.author ?? 'sam',
 			tags: row.tags ?? [],
 			content: row.content ?? '',
 		};
@@ -105,7 +106,7 @@ export class SupabasePostStore implements PostStore {
 		
 		const { data, error } = await this.db
 			.from(this.tableName)
-			.select('id, title, slug, description, content, tags, published, created_at, updated_at')
+			.select('id, title, slug, description, content, tags, published, author, created_at, updated_at')
 			.order('created_at', { ascending: false });
 
 		if (error) {
@@ -143,7 +144,7 @@ export class SupabasePostStore implements PostStore {
 		
 		const result = await this.db
 			.from(this.tableName)
-			.select('id, title, slug, description, content, tags, published, created_at, updated_at')
+			.select('id, title, slug, description, content, tags, published, author, created_at, updated_at')
 			.eq('slug', slug)
 			.maybeSingle<SupabasePostRow>();
 
@@ -169,6 +170,7 @@ export class SupabasePostStore implements PostStore {
 			content: post.content,
 			tags: post.tags,
 			published: false,
+			author: post.author,
 		};
 		logger.agent('supabase.savePost', 'info', `Saving post: ${post.slug}`, { title: post.title });
 		
