@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import fs from 'fs/promises';
 import path from 'path';
-import { getStore, getWriteStore, getPosts, getAllTags } from '$lib/server/posts';
+import { getStore, getWriteStore, getPosts, getAllTags, getContentStore } from '$lib/server/posts';
 import { logger } from '$lib/logging';
 
 export const load = async ({ url }) => {
@@ -87,11 +87,12 @@ export const actions = {
 				logger.info(`Post updated successfully: ${slug}`);
 			} else {
 				logger.info(`Saving new post: ${slug} (author: ${author})`);
-				const savedPost = await store.savePost({ title, slug, description, content, author, tags });
+				savedPost = await store.savePost({ title, slug, description, content, author, tags });
 				logger.info(`Post saved successfully: ${slug}`);
 			}
 			
-			return { success: true, slug: savedPost.slug };
+			const isSupabase = getContentStore() === 'supabase';
+			return { success: true, slug: savedPost.slug, isSupabase };
 		} catch (e: any) {
 			logger.error(`Failed to save post ${slug}:`, e);
 			return fail(500, { error: `Failed to save or commit file: ${e.message}` });
