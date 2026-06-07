@@ -47,6 +47,7 @@
 	let isSuccess = $state(false);
 	let successSlug = $state('');
 	let isSupabase = $state(false);
+	let isDeleting = $state(false);
 
 	const handleEnhance = () => {
 		pending = true;
@@ -58,6 +59,32 @@
 				isSupabase = result.data.isSupabase ?? false;
 			}
 		};
+	};
+
+	async function handleDelete() {
+		if (!confirm(`Delete "${data.slug}"? This cannot be undone.`)) {
+			return;
+		}
+		isDeleting = true;
+		const form = new FormData();
+		form.append('slug', data.slug);
+		form.append('action', 'delete');
+		
+		const res = await fetch('/admin/write', {
+			method: 'POST',
+			body: form,
+		});
+		isDeleting = false;
+		
+		if (res.ok) {
+			const json = await res.json();
+			if (json.success) {
+				window.location.href = '/blog';
+			}
+		} else {
+			const json = await res.json();
+			alert(json.error || 'Failed to delete post');
+		}
 	};
 
 	function addTag(tag: string) {
@@ -249,6 +276,11 @@
 					<button type="submit" class="btn-primary" disabled={pending}>
 						{pending ? 'Saving & Pushing...' : 'Save Draft'}
 					</button>
+					{#if data?.isEdit && isSupabase}
+						<button type="button" class="btn-delete" onclick={handleDelete} disabled={isDeleting}>
+							{isDeleting ? 'Deleting...' : 'Delete'}
+						</button>
+					{/if}
 				</div>
 			</form>
 		{/if}
@@ -671,6 +703,29 @@
 	}
 
 	.btn-primary:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.btn-delete {
+		display: inline-block;
+		text-decoration: none;
+		background: #dc3545;
+		color: var(--bg-color);
+		border: none;
+		padding: 0.75rem 1.5rem;
+		border-radius: 6px;
+		font-size: 1rem;
+		font-weight: 600;
+		cursor: pointer;
+		margin-left: 0.5rem;
+	}
+
+	.btn-delete:hover:not(:disabled) {
+		opacity: 0.9;
+	}
+
+	.btn-delete:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
 	}

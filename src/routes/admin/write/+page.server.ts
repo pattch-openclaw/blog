@@ -97,5 +97,35 @@ export const actions = {
 			logger.error(`Failed to save post ${slug}:`, e);
 			return fail(500, { error: `Failed to save or commit file: ${e.message}` });
 		}
+	},
+	delete: async ({ request }) => {
+		const data = await request.formData();
+		const slug = data.get('slug')?.toString();
+
+		if (!slug) {
+			return fail(400, { error: 'Missing slug' });
+		}
+
+		const store = await getWriteStore();
+		const isSupabase = getContentStore() === 'supabase';
+
+		try {
+			await store.deletePost(slug);
+
+			// For git-based stores, also remove the file and push
+			if (!isSupabase) {
+				const { exec } = require('child_process');
+				exec('git rm -r "src/routes/blog/' + slug + '" 2>/dev/null || true');
+				exec('git commit --no-verify -m "content: delete ' + slug + '"');
+				exec('git push --no-verify origin main', (err: any) => {
+					if (err) console.error('Push failed:', err);
+				});
+			}
+
+			return { success: true, slug, action: 'deleted' };
+		} catch (e: any) {
+			console.error(e);
+			return fail(500, { error: `Failed to delete post: ${e.message}` });
+		}
 	}
 };

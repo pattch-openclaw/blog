@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { getStore } from '$lib/server/posts';
+import { env } from '$env/dynamic/private';
 
 export async function load({ params }) {
 	const store = await getStore();
@@ -9,5 +10,5 @@ export async function load({ params }) {
 		error(404, 'Not found');
 	}
 
-	return { post };
+	return { post, isAdmin: env.SHOW_DRAFTS === 'true' };
 }
