@@ -7,7 +7,7 @@
 	let pending = $state(false);
 	let successMessage = $state('');
 	
-	let showDelete = $derived(data.showAdminControls && data.isSupabase);
+	let showDelete = $derived(data.showAdminControls);
 
 	const handleEnhance = () => {
 		pending = true;
