@@ -1,4 +1,5 @@
 import { getPosts } from '$lib/server/posts';
+import { getContentStore } from '$lib/server/posts';
 import { env } from '$env/dynamic/private';
 
 export async function load({ url }) {
@@ -18,5 +19,5 @@ export async function load({ url }) {
 		}
 	}
 
-	return { showAdminControls, isDraft, currentSlug };
+	return { showAdminControls, isDraft, currentSlug, isSupabase: getContentStore() === 'supabase' };
 }

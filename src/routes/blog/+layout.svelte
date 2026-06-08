@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
+	import DeleteButton from './DeleteButton.svelte';
 	let { data, children } = $props();
 
 	let pending = $state(false);
 	let successMessage = $state('');
+	
+	let showDelete = $derived(data.showAdminControls && data.isSupabase);
 
 	const handleEnhance = () => {
 		pending = true;
@@ -32,16 +35,24 @@
 				{:else if data.isDraft}
 					<div class="admin-actions">
 						<a href="/admin/write?slug={data.currentSlug}" class="btn-edit">✏️ Edit Draft</a>
+						{#if showDelete}
+							<DeleteButton slug={data.currentSlug} />
+						{/if}
 						<form action="/admin?/publish" method="POST" use:enhance={handleEnhance} class="publish-form">
 							<input type="hidden" name="slug" value={data.currentSlug} />
 							<button type="submit" class="btn-publish">🚀 Publish Draft</button>
 						</form>
 					</div>
 				{:else}
-					<form action="/admin?/unpublish" method="POST" use:enhance={handleEnhance} class="publish-form">
-						<input type="hidden" name="slug" value={data.currentSlug} />
-						<button type="submit" class="btn-unpublish">🔒 Revert to Draft</button>
-					</form>
+					<div class="admin-actions">
+						<form action="/admin?/unpublish" method="POST" use:enhance={handleEnhance} class="publish-form">
+							<input type="hidden" name="slug" value={data.currentSlug} />
+							<button type="submit" class="btn-unpublish">🔒 Revert to Draft</button>
+						</form>
+						{#if showDelete}
+							<DeleteButton slug={data.currentSlug} />
+						{/if}
+					</div>
 				{/if}
 			{/if}
 		</nav>
