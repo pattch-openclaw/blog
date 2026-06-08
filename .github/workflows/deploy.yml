@@ -38,8 +38,12 @@ jobs:
           else
             git add tests/blog.spec.ts-snapshots/
             git commit -m "test: update screenshot references"
-            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/pattch-openclaw/blog.git main
+            gh api repos/pattch-openclaw/blog/git/refs/heads/main --jq '.object.sha' > /tmp/cur_sha.txt
+            git fetch origin main
+            git push origin main
           fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Tests (Unit & E2E Screendiff)
         run: npm run test
