@@ -38,7 +38,7 @@ jobs:
           else
             git add tests/blog.spec.ts-snapshots/
             git commit -m "test: update screenshot references"
-            git push origin main
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/pattch-openclaw/blog.git main
           fi
 
       - name: Run Tests (Unit & E2E Screendiff)
