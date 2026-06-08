@@ -27,8 +27,8 @@ This repository relies on automated testing to ensure the blog's UI and markdown
 The stack includes:
 * **Vitest**: Used for unit tests, parsing the Markdown frontmatter correctly, and checking data loaders.
 * **Playwright**: Used for End-to-End (E2E) UI testing, validating the 404 pages, layout integrity, and Visual Regression (Screendiff) testing for the homepage.
-* **Husky Git Hooks**: Automatically runs `npm run test` before every `git push`.
-* **CI/CD Pipeline**: Tests run a second time securely on the home server. If any test fails on `main`, the deployment halts and PM2 is not reloaded.
+* **Husky Git Hooks**: Automatically runs the full test suite (`npm run test` — both Vitest unit + Playwright E2E) before every `git push`.
+* **CI/CD Pipeline**: Runs the full test suite on the home server before deploying. If any test (unit or E2E) fails on `main`, the deployment halts and PM2 is not reloaded.
 
 ### Running Tests
 To manually run the test suite:
@@ -37,7 +37,7 @@ npm run test
 ```
 
 ### Approving Screendiff Changes
-If you intentionally modify the visual design of the homepage, the pre-push hook will block your commit because the Playwright visual regression snapshot will mismatch.
+If you intentionally modify the visual design of the homepage, the pre-commit and pre-push hooks will block your commit because the Playwright visual regression snapshot will mismatch.
 
 To update the baseline snapshot to match your new changes, run:
 ```bash

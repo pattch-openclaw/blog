@@ -3,4 +3,4 @@
 unset GITHUB_ACTIONS
 unset GITHUB_STEP_SUMMARY
 
-npm run test:unit
+npm test
