@@ -28,6 +28,10 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
 
+      - name: Run E2E tests
+        run: npm run test:e2e
+        timeout-minutes: 10
+
       - name: Upload Playwright Test Results
         if: always()
         uses: actions/upload-artifact@v4
