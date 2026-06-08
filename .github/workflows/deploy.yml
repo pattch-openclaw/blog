@@ -28,22 +28,6 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
 
-      - name: Update screenshot references & commit
-        env:
-          GIT_URL: "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
-        run: |
-          npx @playwright/test test --update-snapshots
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet tests/blog.spec.ts-snapshots/; then
-            echo "No screenshot changes needed"
-          else
-            git remote set-url origin "$GIT_URL"
-            git add tests/blog.spec.ts-snapshots/
-            git commit -m "test: update screenshot references"
-            git push origin main
-          fi
-
       - name: Upload Playwright Test Results
         if: always()
         uses: actions/upload-artifact@v4
