@@ -25,11 +25,12 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Update screenshot references
-        run: npx @playwright/test test --update-snapshots
+      - name: Run unit tests
+        run: npm run test:unit
 
-      - name: Commit updated screenshots
+      - name: Update screenshot references & run tests
         run: |
+          npx @playwright/test test --update-snapshots
           git config user.name "Sam"
           git config user.email "sam@Sams-Virtual-Machine.local"
           if git diff --quiet tests/blog.spec.ts-snapshots/; then
@@ -39,9 +40,6 @@ jobs:
             git commit -m "test: update screenshot references"
             git push origin main
           fi
-
-      - name: Run Tests (Unit & E2E Screendiff)
-        run: npm run test
 
       - name: Upload Playwright Test Results
         if: always()
