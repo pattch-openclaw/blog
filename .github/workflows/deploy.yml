@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Or whatever LTS version you're on locally
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -24,26 +24,6 @@ jobs:
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
-
-      - name: Update screenshot references
-        run: npx playwright test --update-snapshots
-
-      - name: Commit updated screenshots
-        if: always()
-        run: |
-          git config user.name "Sam"
-          git config user.email "sam@Sams-Virtual-Machine.local"
-          if git diff --quiet tests/blog.spec.ts-snapshots/; then
-            echo "No screenshot changes needed"
-          else
-            git add tests/blog.spec.ts-snapshots/
-            git commit -m "test: update screenshot references"
-            gh api repos/pattch-openclaw/blog/git/refs/heads/main --jq '.object.sha' > /tmp/cur_sha.txt
-            git fetch origin main
-            git push origin main
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Tests (Unit & E2E Screendiff)
         run: npm run test
