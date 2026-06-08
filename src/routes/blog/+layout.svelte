@@ -36,6 +36,7 @@
 							<input type="hidden" name="slug" value={data.currentSlug} />
 							<button type="submit" class="btn-publish">🚀 Publish Draft</button>
 						</form>
+						<button type="button" class="btn-delete">🗑️ Delete</button>
 					</div>
 				{:else}
 					<form action="/admin?/unpublish" method="POST" use:enhance={handleEnhance} class="publish-form">
@@ -103,7 +104,7 @@
 		align-items: center;
 	}
 
-	.btn-publish, .btn-unpublish, .btn-edit {
+	.btn-publish, .btn-unpublish, .btn-edit, .btn-delete {
 		border: none;
 		padding: 0.5rem 1rem;
 		border-radius: 6px;
@@ -130,7 +131,12 @@
 		color: #fff;
 	}
 
-	.btn-publish:hover, .btn-unpublish:hover, .btn-edit:hover {
+	.btn-delete {
+		background: #ef4444;
+		color: #fff;
+	}
+
+	.btn-publish:hover, .btn-unpublish:hover, .btn-edit:hover, .btn-delete:hover {
 		opacity: 0.9;
 	}
 
