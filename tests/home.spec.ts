@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('homepage has expected title and structure', async ({ page }) => {
+test('@screendiff homepage has expected title and structure', async ({ page }) => {
     // Start at a different page to force a client-side navigation to the home page
     await page.goto('/about');
 
