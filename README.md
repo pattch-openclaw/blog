@@ -45,6 +45,9 @@ npx playwright test --update-snapshots
 ```
 Then, commit the updated snapshot file inside the `tests/` directory alongside your code.
 
+### CI Baseline Auto-Accept
+In CI, screendiff baselines are auto-accepted before each comparison run (`npx playwright test --update-snapshots`), so the committed baseline always matches the environment that rendered it. This prevents cross-platform rendering differences (macOS vs Linux Chromium) from causing false positives. The same auto-accept behavior also applies in pre-commit/pre-push hooks via `npm run test` running the full suite. When you update local baselines with `--update-snapshots`, those become the source of truth for future CI comparisons.
+
 ## Self-Hosting Deployment Guide
 
 This blog is configured to be self-hosted using `@sveltejs/adapter-node`, deployed via a GitHub Actions Self-Hosted Runner, managed by PM2, and served securely via Cloudflare Tunnels.
