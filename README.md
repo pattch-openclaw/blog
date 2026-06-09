@@ -27,26 +27,28 @@ This repository relies on automated testing to ensure the blog's UI and markdown
 The stack includes:
 * **Vitest**: Used for unit tests, parsing the Markdown frontmatter correctly, and checking data loaders.
 * **Playwright**: Used for End-to-End (E2E) UI testing, validating the 404 pages, layout integrity, and Visual Regression (Screendiff) testing for the homepage.
-* **Husky Git Hooks**: Automatically runs the full test suite (`npm run test` — both Vitest unit + Playwright E2E) before every `git push`.
-* **CI/CD Pipeline**: Runs the full test suite on the home server before deploying. If any test (unit or E2E) fails on `main`, the deployment halts and PM2 is not reloaded.
+* **Husky Git Hooks**: Automatically runs the full test suite (`npm run test` — both Vitest unit + all Playwright E2E including screendiff) before every `git push`.
+* **CI/CD Pipeline**: Runs unit tests and non-screendiff E2E tests on the home server before deploying. If any test fails on `main`, the deployment halts and PM2 is not reloaded.
 
 ### Running Tests
-To manually run the test suite:
+To manually run the full test suite (including screendiff):
 ```bash
 npm run test
 ```
 
-### Approving Screendiff Changes
-If you intentionally modify the visual design of the homepage, the pre-commit and pre-push hooks will block your commit because the Playwright visual regression snapshot will mismatch.
+To run only non-screendiff E2E tests (CI behavior):
+```bash
+npx playwright test --grep-invert '@screendiff'
+```
 
-To update the baseline snapshot to match your new changes, run:
+### Screendiff Tests at Pre-Commit
+Screendiff (visual regression) tests run at pre-commit time, ensuring visual regressions are caught before they reach the repository. This keeps screendiff coverage without blocking deployment — removing them from the CI pipeline prevents deployment failures caused by harmless screendiff drift (e.g., OS-level font rendering differences between the developer's machine and the CI runner).
+
+To update the screendiff baseline when you intentionally change the visual design, run:
 ```bash
 npx playwright test --update-snapshots
 ```
-Then, commit the updated snapshot file inside the `tests/` directory alongside your code.
-
-### CI Baseline Auto-Accept
-In CI, screendiff baselines are auto-accepted before each comparison run (`npx playwright test --update-snapshots`), so the committed baseline always matches the environment that rendered it. This prevents cross-platform rendering differences (macOS vs Linux Chromium) from causing false positives. The same auto-accept behavior also applies in pre-commit/pre-push hooks via `npm run test` running the full suite. When you update local baselines with `--update-snapshots`, those become the source of truth for future CI comparisons.
+Commit the updated snapshot file inside the `tests/` directory alongside your code.
 
 ## Self-Hosting Deployment Guide
 
