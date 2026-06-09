@@ -219,7 +219,7 @@ tags:                 # YAML array or comma-separated, empty if missing
   - Storage buckets: `images`, `audio`, `fonts`
   - `@supabase/supabase-js` installed on host
   - Credentials managed via `/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets` (manually parsed at PM2 startup via `ecosystem.config.cjs`)
-- **Supabase post store read/write:** ✅ Working — `SupabasePostStore` successfully lists, reads, writes, updates, and deletes posts on sandbox via the anon key. RLS allows public read; writes return inserted rows. See commit `1a282a8` (await fix for Supabase JS v2 async chain) and PR #33 (interface type alignment).
+- **Supabase post store read/write:** ✅ Working — `SupabasePostStore` successfully lists, reads, writes, updates, and deletes posts on sandbox via the anon key. All CRUD operations verified. RLS allows public read; writes return inserted rows. See commit `1a282a8` (await fix for Supabase JS v2 async chain) and PR #33 (interface type alignment).
 
   **⚠️ Secrets file format:** The `.blog-secrets` file must use plain `KEY=VALUE` lines (one per line). Do **not** use `export KEY=VALUE` — the parser splits on the first `=` and takes everything after it as the value, so the `export` prefix would become part of the key and silently break credential loading. Comments starting with `#` are supported and ignored. Blank lines are also ignored.
 
@@ -230,7 +230,8 @@ tags:                 # YAML array or comma-separated, empty if missing
   ```
 
 - **Supabase runtime access:** ✅ Verified — both `sams-blog-prod` and `sams-blog-staging` successfully read `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `.blog-secrets` at startup. The `/admin/supabase` admin page displays the injected values correctly.
-- **Pending:** `FallingBackPostStore`, staging banner, E2E validation
+- **Pending:** `FallingBackPostStore`, staging banner, E2E validation, media integration (upload to Supabase Storage, media gallery migration, media insertion on write page)
+- **Media integration status:** Not yet implemented — the current `/admin/media` page still uses filesystem-based media (local disk + git commits). Media stored in Supabase Storage buckets is the target state but not yet wired up.
 
 #### Phase 3 — Supabase-only (remove git content layer)
 - Once validated, switch to Supabase-only mode
