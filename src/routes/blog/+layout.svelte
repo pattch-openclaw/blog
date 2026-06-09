@@ -12,10 +12,10 @@
 			pending = false;
 			if (result.type === 'success') {
 				successMessage = result.data?.action === 'published' 
-					? '🚀 Published! Pipeline rebuilding...'
+					? '🚀 Published!'
 					: result.data?.action === 'deleted'
 						? '🗑️ Deleted!'
-						: '🔒 Reverted! Pipeline rebuilding...';
+						: '🔒 Reverted!';
 			}
 		};
 	};
