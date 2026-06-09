@@ -153,7 +153,7 @@ function buildMockDb(rows: Post[]) {
 				delete() {
 					return {
 						eq(_col: string, _val: unknown) {
-							return () => Promise.resolve({ error: null });
+							return Promise.resolve({ error: null });
 						},
 					};
 				},
