@@ -13,7 +13,9 @@
 			if (result.type === 'success') {
 				successMessage = result.data?.action === 'published' 
 					? '🚀 Published! Pipeline rebuilding...'
-					: '🔒 Reverted! Pipeline rebuilding...';
+					: result.data?.action === 'deleted'
+						? '🗑️ Deleted!'
+						: '🔒 Reverted! Pipeline rebuilding...';
 			}
 		};
 	};
@@ -37,6 +39,10 @@
 							<button type="submit" class="btn-publish">🚀 Publish Draft</button>
 						</form>
 						<button type="button" class="btn-delete">🗑️ Delete</button>
+						<form action="/admin?/delete" method="POST" use:enhance={handleEnhance} class="publish-form" style="display:inline">
+							<input type="hidden" name="slug" value={data.currentSlug} />
+							<button type="submit" class="btn-delete">🗑️ Delete</button>
+						</form>
 					</div>
 				{:else}
 					<form action="/admin?/unpublish" method="POST" use:enhance={handleEnhance} class="publish-form">

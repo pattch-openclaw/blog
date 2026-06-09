@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { getStore, getWriteStore } from '$lib/server/posts';
+import { logger } from '$lib/logging';
 
 export const actions = {
 	publish: async ({ request }) => {
@@ -54,6 +55,25 @@ export const actions = {
 		} catch (e: any) {
 			console.error(e);
 			return fail(500, { error: `Failed to unpublish post: ${e.message}` });
+		}
+	},
+
+	delete: async ({ request }) => {
+		const data = await request.formData();
+		const slug = data.get('slug')?.toString();
+
+		if (!slug) {
+			return fail(400, { error: 'Missing slug' });
+		}
+
+		const store = await getWriteStore();
+		try {
+			await store.deletePost(slug);
+			logger.info(`Post deleted: ${slug}`);
+			return { success: true, action: 'deleted' };
+		} catch (e: any) {
+			logger.error(`Delete failed for ${slug}: ${e.message}`);
+			return fail(500, { error: `Failed to delete post: ${e.message}` });
 		}
 	}
 };
