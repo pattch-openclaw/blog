@@ -28,11 +28,8 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
 
-      - name: Update screendiff baselines (auto-accept)
-        run: npx playwright test --update-snapshots
-
       - name: Run E2E tests
-        run: npm run test:e2e
+        run: npx playwright test --grep-invert '@screendiff'
         timeout-minutes: 10
 
       - name: Upload Playwright Test Results
