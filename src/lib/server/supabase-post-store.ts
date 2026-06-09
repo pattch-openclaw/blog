@@ -60,9 +60,9 @@ interface SupabaseQueryClient {
 			};
 		};
 		delete(): {
-			eq<Col>(col: Col, value: unknown): {
-				(): Promise<{ error: { message: string } | null }>;
-			};
+			eq<Col>(col: Col, value: unknown): Promise<{
+				error: { message: string } | null;
+			}>;
 		};
 	};
 }
@@ -242,7 +242,7 @@ export class SupabasePostStore implements PostStore {
 		const { error } = await this.db
 			.from(this.tableName)
 			.delete()
-			.eq('slug', slug)();
+			.eq('slug', slug);
 
 		if (error) {
 			const msg = `Failed to delete post "${slug}" from Supabase: ${error.message}`;
