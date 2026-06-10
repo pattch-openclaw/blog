@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { GitPostStore } from '$lib/server/git-post-store';
 import type { Post } from '$lib/types';
 import { logger } from '$lib/logging';
+import { replaceSupabaseUrls } from '$lib/server/supabase-url-resolver';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -108,6 +109,9 @@ const migratePostToSupabase = async (slug: string): Promise<{ success: boolean; 
 		// Replace it everywhere it appears in the content
 		newContent = newContent.replaceAll(oldPath, newUrl);
 	}
+
+	// 4b. Replace Supabase public Storage URLs with signed URLs
+	newContent = await replaceSupabaseUrls(newContent);
 
 	// 5. Save the post to Supabase
 	const supabasePost: Omit<Post, 'date' | 'published'> = {

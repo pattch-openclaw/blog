@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseClient } from './supabase-client';
 import type { MediaEntry, MediaStore } from './media-store';
 import { logger } from '$lib/logging';
+import path from 'node:path';
 
 /**
  * Row shape returned from the Supabase `media_entries` table.
@@ -98,6 +99,54 @@ export class SupabaseMediaStore implements MediaStore {
 			return `https://supabase.io/storage/v1/object/public/${bucket}/${path}`;
 		}
 		return `${url}/storage/v1/object/public/${bucket}/${path}`;
+	}
+
+	/**
+	 * Generate a signed (time-limited) URL for a storage object.
+	 * Uses the service key to avoid RLS restrictions.
+	 */
+	async getSignedUrl(bucket: string, path: string, seconds = 3600): Promise<string> {
+		const { createClient } = await import('@supabase/supabase-js');
+		const serviceUrl = process.env.SUPABASE_URL;
+		const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+
+		if (!serviceUrl || !serviceKey) {
+			logger.warn('supabase.getSignedUrl', 'missing service key, falling back to public URL');
+			return this.buildPublicUrl(bucket, path);
+		}
+
+		// Use service key (bypasses RLS)
+		const serviceClient = createClient(serviceUrl, serviceKey);
+		const { data, error } = await serviceClient.storage
+			.from(bucket)
+			.createSignedUrl(path, seconds);
+
+		if (error) {
+			logger.warn('supabase.getSignedUrl', `Failed to create signed URL for ${bucket}/${path}: ${error.message}`);
+			return this.buildPublicUrl(bucket, path);
+		}
+
+		return data.signedUrl;
+	}
+
+	/**
+	 * Build a map of public URLs → signed URLs for all Supabase-hosted media paths in the given content.
+	 */
+	private async resolveMediaUrls(content: string, pathToUrl: Map<string, string>, seconds = 3600): Promise<string> {
+		let newContent = content;
+
+		for (const [oldPath, publicUrl] of pathToUrl) {
+			if (!publicUrl.startsWith(process.env.SUPABASE_URL ?? '')) continue;
+
+			try {
+				const signedUrl = await this.getSignedUrl('images', path.basename(publicUrl), seconds);
+				newContent = newContent.replaceAll(publicUrl, signedUrl);
+			} catch {
+				// Keep the public URL as fallback
+			}
+		}
+
+		return newContent;
 	}
 
 	/**

@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { getStore } from '$lib/server/posts';
+import { getStore, getContentStore } from '$lib/server/posts';
+import { replaceSupabaseUrls } from '$lib/server/supabase-url-resolver';
 
 export async function load({ params }) {
 	const store = await getStore();
@@ -9,5 +10,8 @@ export async function load({ params }) {
 		error(404, 'Not found');
 	}
 
-	return { post };
+	// For Supabase-hosted posts, replace public Storage URLs with signed URLs
+	const content = getContentStore() === 'supabase' ? await replaceSupabaseUrls(post.content || '') : post.content;
+
+	return { post: { ...post, content } };
 }
