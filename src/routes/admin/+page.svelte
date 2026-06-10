@@ -27,6 +27,10 @@
 			<h2>Supabase Configuration</h2>
 			<p>View current Supabase URL and anon key loaded from the secrets file.</p>
 		</a>
+		<a href="/admin/migrate-to-supabase" class="card">
+			<h2>Migrate to Supabase</h2>
+			<p>Promote a git-based blog post and its media to the Supabase backend.</p>
+		</a>
 		<a href="/admin/schema" class="card">
 			<h2>Supabase Schema</h2>
 			<p>Inspect the posts table schema, RLS policies, row count, and sample data.</p>
