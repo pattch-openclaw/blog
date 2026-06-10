@@ -92,33 +92,46 @@ export class SupabaseMediaStore implements MediaStore {
 	 * Supabase Storage public URLs follow this pattern:
 	 * https://<project>.supabase.co/storage/v1/object/public/<bucket>/<filename>
 	 *
-	 * The stored path is bucket-prefixed (e.g., 'images/filename.png'),
-	 * so we strip the bucket segment to avoid duplication.
+	 * @param path - Either "bucket/filename" or just "filename" (bucket is extracted from the path)
+	 * @returns The public URL string
 	 */
-	private buildPublicUrl(bucket: string, path: string): string {
+	private buildPublicUrl(path: string): string {
 		const url = process.env.SUPABASE_URL;
 		if (!url) {
-			return `https://supabase.io/storage/v1/object/public/${bucket}/${path}`;
+			return `https://supabase.io/storage/v1/object/public/${path}`;
 		}
 
-		// path is like 'images/filename.png'; strip the bucket prefix to avoid double-insertion
-		const pathWithoutBucket = path.startsWith(bucket + '/') ? path.slice(bucket.length + 1) : path;
-		return `${url}/storage/v1/object/public/${bucket}/${pathWithoutBucket}`;
+		// If path contains a slash, split to get bucket and filename
+		const segments = path.split('/');
+		const bucket = segments.length > 1 ? segments[0] : '';
+		const filename = segments.length > 1 ? segments.slice(1).join('/') : segments[0];
+
+		if (bucket && filename) {
+			return `${url}/storage/v1/object/public/${bucket}/${filename}`;
+		}
+
+		// Fallback: use the whole path as-is
+		return `${url}/storage/v1/object/public/${path}`;
 	}
 
 	/**
 	 * Generate a signed (time-limited) URL for a storage object.
 	 * Uses the service key to avoid RLS restrictions.
 	 */
-	async getSignedUrl(bucket: string, path: string, seconds = 3600): Promise<string> {
+	async getSignedUrl(path: string, seconds = 3600): Promise<string> {
 		const { createClient } = await import('@supabase/supabase-js');
 		const serviceUrl = process.env.SUPABASE_URL;
 		const serviceKey = process.env.SUPABASE_SERVICE_KEY;
 
 		if (!serviceUrl || !serviceKey) {
 			logger.warn('supabase.getSignedUrl', 'missing service key, falling back to public URL');
-			return this.buildPublicUrl(bucket, path);
+			return this.buildPublicUrl(path);
 		}
+
+		// Split path into bucket and filename
+		const segments = path.split('/');
+		const bucket = segments.length > 1 ? segments[0] : 'images';
+		const filename = segments.length > 1 ? segments.slice(1).join('/') : segments[0];
 
 		// Use service key (bypasses RLS)
 		const serviceClient = createClient(serviceUrl, serviceKey);
@@ -127,8 +140,8 @@ export class SupabaseMediaStore implements MediaStore {
 			.createSignedUrl(path, seconds);
 
 		if (error) {
-			logger.warn('supabase.getSignedUrl', `Failed to create signed URL for ${bucket}/${path}: ${error.message}`);
-			return this.buildPublicUrl(bucket, path);
+			logger.warn('supabase.getSignedUrl', `Failed to create signed URL for ${bucket}/${filename}: ${error.message}`);
+			return this.buildPublicUrl(path);
 		}
 
 		return data.signedUrl;
@@ -137,14 +150,14 @@ export class SupabaseMediaStore implements MediaStore {
 	/**
 	 * Build a map of public URLs → signed URLs for all Supabase-hosted media paths in the given content.
 	 */
-	private async resolveMediaUrls(content: string, pathToUrl: Map<string, string>, seconds = 3600): Promise<string> {
+	async resolveMediaUrls(content: string, pathToUrl: Map<string, string>, seconds = 3600): Promise<string> {
 		let newContent = content;
 
 		for (const [oldPath, publicUrl] of pathToUrl) {
 			if (!publicUrl.startsWith(process.env.SUPABASE_URL ?? '')) continue;
 
 			try {
-				const signedUrl = await this.getSignedUrl('images', path.basename(publicUrl), seconds);
+				const signedUrl = await this.getSignedUrl(oldPath, seconds);
 				newContent = newContent.replaceAll(publicUrl, signedUrl);
 			} catch {
 				// Keep the public URL as fallback
@@ -215,7 +228,7 @@ export class SupabaseMediaStore implements MediaStore {
 			mime_type: row.mime_type,
 			size: row.size,
 			post_id: row.post_id,
-			public_url: this.buildPublicUrl(row.bucket, row.path),
+			public_url: this.buildPublicUrl(row.path),
 		}));
 
 		logger.agent('supabase.listMedia', 'info', `Returned ${entries.length} media entries`);
@@ -290,7 +303,7 @@ export class SupabaseMediaStore implements MediaStore {
 			mime_type: insertedRow.mime_type,
 			size: insertedRow.size,
 			post_id: insertedRow.post_id,
-			public_url: this.buildPublicUrl(insertedRow.bucket, insertedRow.path),
+			public_url: this.buildPublicUrl(insertedRow.path),
 		};
 	}
 
