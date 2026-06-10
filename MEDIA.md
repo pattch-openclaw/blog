@@ -22,9 +22,9 @@ Both `FileSystemMediaStore` and `SupabaseMediaStore` expose `listMedia()`. The w
 
 ## Step-by-Step Plan
 
-### Step 1: Define the `MediaStore` Interface
+### Step 1: Define the `MediaStore` Interface ✅ COMPLETED
 
-Create `src/lib/server/media-store.ts` with the abstract interface:
+Created `src/lib/server/media-store.ts` with the abstract interface:
 
 ```ts
 export interface MediaEntry {
@@ -49,9 +49,9 @@ export interface MediaStore {
 - `SupabaseMediaStore`: constructs the public URL from bucket + path
 - `FileSystemMediaStore`: returns the local `/media/<bucket>/<filename>` path
 
-### Step 2: Create `FileSystemMediaStore`
+### Step 2: Create `FileSystemMediaStore` ✅ COMPLETED
 
-Port the existing `/admin/media/+page.server.ts` filesystem logic into the new abstraction:
+Ported the existing `/admin/media/+page.server.ts` filesystem logic into the new abstraction in `src/lib/server/file-media-store.ts`:
 
 - **`listMedia()`**: Read from `media/images/`, `media/audio/`, `media/fonts/` directories, return `MediaEntry[]` with paths like `/media/images/filename`
 - **`uploadMedia(file, bucket, postId?)`**: Write to local `media/<bucket>/`, `git add`, `git commit --no-verify`, `git push --no-verify origin main`
@@ -59,9 +59,9 @@ Port the existing `/admin/media/+page.server.ts` filesystem logic into the new a
 
 This preserves current behavior for `CONTENT_STORE=git` mode.
 
-### Step 3: Create `SupabaseMediaStore`
+### Step 3: Create `SupabaseMediaStore` ✅ COMPLETED
 
-Implement Supabase-specific logic:
+Implemented Supabase-specific logic in `src/lib/server/supabase-media-store.ts`:
 
 - **`listMedia()`**: Query `media_entries` Postgres table, fetch file metadata from `supabase.storage.from(bucket).list()`
 - **`uploadMedia(file, bucket, postId?)`**: 

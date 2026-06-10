@@ -230,8 +230,10 @@ tags:                 # YAML array or comma-separated, empty if missing
   ```
 
 - **Supabase runtime access:** ✅ Verified — both `sams-blog-prod` and `sams-blog-staging` successfully read `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `.blog-secrets` at startup. The `/admin/supabase` admin page displays the injected values correctly.
-- **Pending:** `FallingBackPostStore`, staging banner, E2E validation, media integration (upload to Supabase Storage, media gallery migration, media insertion on write page)
-- **Media integration status:** Not yet implemented — the current `/admin/media` page still uses filesystem-based media (local disk + git commits). Media stored in Supabase Storage buckets is the target state but not yet wired up.
+- **Pending:** `FallingBackPostStore`, staging banner, E2E validation
+
+#### Supabase Media Integration
+The media migration plan (interface, `FileSystemMediaStore`, `SupabaseMediaStore`) is documented in [MEDIA.md](MEDIA.md). Steps 1–3 (abstraction layer + both store implementations) are complete; Steps 4–8 (route wiring, migration script, sandbox verification, cleanup) remain.
 
 #### Phase 3 — Supabase-only (remove git content layer)
 - Once validated, switch to Supabase-only mode
@@ -254,30 +256,14 @@ posts:
   created_at (timestamptz)
   updated_at (timestamptz)
 
-media_entries:
-  id (uuid, PK)
-  bucket (text) — "images", "audio", "fonts"
-  path (text) — Supabase Storage path
-  filename (text)
-  mime_type (text)
-  size (bigint)
-  post_id (uuid, FK → posts, nullable)
-  uploaded_at (timestamptz)
-```
-
 Tags stored as text array (no relational tags table needed at this scale)
-- Single author (Sam only)
-- Media files stored in Supabase Storage buckets (`images`, `audio`, `fonts`), NOT on the host filesystem
-- Media registry (`media_entries`) in Postgres tracks file metadata and links to posts
 
 #### Key constraints
 - **Provider-swappable:** The abstract interface must be complete enough that Supabase ↔ SQLite swap is a matter of swapping one implementation file
 - **No behavioral changes in Phase 1:** The abstraction layer must produce identical results to the existing git-based behavior
 - **Staging banner** in Phase 2 so Sam can verify content source at a glance
-- **Zero host dependency:** Both blog content and media are stored in Supabase (Postgres + Storage). No files are required to exist on the local host. The `/media/[...file]/+server.ts` endpoint proxies to Supabase Storage URLs
-- **Media upload:** Files are written to Supabase Storage buckets, metadata inserted into `media_entries`. No filesystem writes on the host
-- **Media deletion:** Files are removed from Supabase Storage + `media_entries` row. No filesystem operations
-- **No media on disk:** The existing `/media/` directory on the host is no longer the source of truth. Supabase Storage is the sole media store
+- **Zero host dependency:** Blog content stored in Supabase (Postgres). No files are required to exist on the local host.
+- **Media:** See [MEDIA.md](MEDIA.md) for the media migration plan, abstraction, and implementation details.
 
 ## Lessons Learned
 - **Visual Regression Flakiness:** Playwright visual regression tests are highly sensitive to active UI states. A simple `locator.click()` can leave a focus ring that fails screenshot diffs; appending `.blur()` immediately resolves this.
