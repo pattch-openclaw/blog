@@ -28,7 +28,7 @@ const SUPABASE_STORAGE_URL = new RegExp(
  */
 export async function replaceSupabaseUrls(content: string, expiresInSeconds = 3600): Promise<string> {
 	if (!SERVICE_CLIENT) {
-		logger.warn('replaceSupabaseUrls', `SERVICE_CLIENT is null — SUPABASE_SERVICE_KEY=${!!process.env.SUPABASE_SERVICE_KEY} SUPABASE_URL=${!!process.env.SUPABASE_URL}`);
+		logger.warn('replaceSupabaseUrls', 'SERVICE_CLIENT not initialized, returning content unchanged');
 		return content;
 	}
 
@@ -37,22 +37,15 @@ export async function replaceSupabaseUrls(content: string, expiresInSeconds = 36
 
 	SUPABASE_STORAGE_URL.lastIndex = 0;
 	let match;
-	let matchCount = 0;
 	while ((match = SUPABASE_STORAGE_URL.exec(content)) !== null) {
-		matchCount++;
 		const fullUrl = match[1]; // the full URL without the protocol prefix
 		const bucket = match[2];
 		const _dupBucket = match[3]; // optional double-bucket segment (may be undefined)
 		const filename = match[4];
 
-		logger.debug('replaceSupabaseUrls', `Match ${matchCount}: bucket=${bucket}, dupBucket=${!!_dupBucket}, filename=${filename}, full=${fullUrl}`);
-
 		// Deduplicate: use bucket+filename as the key
 		const key = `${bucket}/${filename}`;
-		if (seen.has(key)) {
-			logger.debug('replaceSupabaseUrls', `Skipping duplicate: ${key}`);
-			continue;
-		}
+		if (seen.has(key)) continue;
 		seen.add(key);
 
 		try {
@@ -64,7 +57,6 @@ export async function replaceSupabaseUrls(content: string, expiresInSeconds = 36
 				logger.warn('replaceSupabaseUrls', `Failed to sign ${bucket}/${filename}: ${error.message}`);
 				replacements.push({ match: fullUrl, signedUrl: fullUrl }); // keep original
 			} else {
-				logger.debug('replaceSupabaseUrls', `Signed ${bucket}/${filename} -> ${data.signedUrl.substring(0, 80)}...`);
 				replacements.push({ match: fullUrl, signedUrl: data.signedUrl });
 			}
 		} catch (e: any) {
@@ -73,12 +65,10 @@ export async function replaceSupabaseUrls(content: string, expiresInSeconds = 36
 		}
 	}
 
-	logger.debug('replaceSupabaseUrls', `Total matches: ${matchCount}, replacements: ${replacements.length}`);
-	if (matchCount === 0) {
-		logger.warn('replaceSupabaseUrls', 'No Supabase URLs found in content — regex did not match');
-		// Log first few URLs in content for debugging
-		const firstUrls = content.match(/https?:\/\/[^\s"'<>]+/g)?.slice(0, 5).join(', ') ?? 'none';
-		logger.warn('replaceSupabaseUrls', `Sample URLs in content: ${firstUrls}`);
+	if (replacements.length > 0) {
+		logger.info('replaceSupabaseUrls', `Replaced ${replacements.length} Supabase URL(s)`);
+	} else {
+		logger.info('replaceSupabaseUrls', 'No Supabase URLs found in content');
 	}
 
 	if (replacements.length === 0) return content;
