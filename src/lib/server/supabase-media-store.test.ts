@@ -37,9 +37,9 @@ const mockMediaRows: MediaEntry[] = [
 	},
 ];
 
-// --- Mock builders ---
+// --- Mock builder ---
 
-function buildMockDb(rows: MediaEntry[]) {
+function buildMockClient(rows: MediaEntry[]) {
 	let state: {
 		table: string | null;
 		eqCol: string | null;
@@ -79,7 +79,13 @@ function buildMockDb(rows: MediaEntry[]) {
 		},
 	};
 
+	const uploadedFiles: Array<{ bucket: string; path: string; file: File }> = [];
+	const deletedFiles: Array<{ bucket: string; paths: string[] }> = [];
+	let uploadErr: Error | null = null;
+	let removeErr: Error | null = null;
+
 	return {
+		// DB query chain: client.from(table) -> select -> order/eq/etc
 		from(table: string) {
 			state.table = table;
 			return {
@@ -122,55 +128,36 @@ function buildMockDb(rows: MediaEntry[]) {
 				},
 			};
 		},
-	};
-}
-
-function buildMockStorage() {
-	const uploadedFiles: Array<{ bucket: string; path: string; file: File }> = [];
-	const deletedFiles: Array<{ bucket: string; paths: string[] }> = [];
-
-	const storage = {
-		from(bucket: string) {
-			return {
-				async upload(path: string, file: File, _opts?: { upsert: boolean }) {
-					uploadedFiles.push({ bucket, path, file });
-					return { data: [{ path }], error: null };
-				},
-				async remove(paths: string[]) {
-					deletedFiles.push({ bucket, paths });
-					return { error: null };
-				},
-			};
+		// Storage bucket API: client.storage.from(bucket) -> upload/remove
+		storage: {
+			from(bucket: string) {
+				return {
+					async upload(path: string, file: File, _opts?: { upsert: boolean }) {
+						uploadedFiles.push({ bucket, path, file });
+						return { data: [{ path }], error: uploadErr };
+					},
+					async remove(paths: string[]) {
+						deletedFiles.push({ bucket, paths });
+						return { error: removeErr };
+					},
+				};
+			},
 		},
+		// Test helpers
+		setUploadError(err: Error | null) { uploadErr = err; },
+		setRemoveError(err: Error | null) { removeErr = err; },
 		getUploadedFiles: () => uploadedFiles,
 		getDeletedFiles: () => deletedFiles,
-	};
-
-	return { storage };
-}
-
-function buildErrorStorage(uploadError: Error | null = null, removeError: Error | null = null) {
-	return {
-		storage: {
-			from: () => ({
-				upload: () => Promise.resolve({ data: uploadError ? null : [{ path: 'test' }], error: uploadError }),
-				remove: () => Promise.resolve({ error: removeError }),
-			}),
-		},
-	};
+	} as any;
 }
 
 // --- Tests ---
 
 describe('SupabaseMediaStore', () => {
-	let store: SupabaseMediaStore;
-	let mockDb: ReturnType<typeof buildMockDb>;
-	let mockStorage: ReturnType<typeof buildMockStorage>;
+	let mockClient: ReturnType<typeof buildMockClient>;
 
 	beforeEach(() => {
-		mockDb = buildMockDb([...mockMediaRows]);
-		mockStorage = buildMockStorage();
-		store = new SupabaseMediaStore(mockDb as any, mockStorage as any);
+		mockClient = buildMockClient([...mockMediaRows]);
 	});
 
 	afterEach(() => {
@@ -178,62 +165,59 @@ describe('SupabaseMediaStore', () => {
 	});
 
 	describe('constructor', () => {
-		test('accepts mock db and storage', () => {
-			const mDb = buildMockDb([]);
-			const mStorage = buildMockStorage();
-			const s = new SupabaseMediaStore(mDb as any, mStorage as any);
-			expect(s).toBeDefined();
+		test('accepts mock client', () => {
+			const store = new SupabaseMediaStore(mockClient);
+			expect(store).toBeDefined();
 		});
 	});
 
 	describe('listMedia', () => {
 		test('returns all media entries sorted descending', async () => {
+			const store = new SupabaseMediaStore(mockClient);
 			const entries = await store.listMedia();
 			expect(entries).toHaveLength(3);
 		});
 
 		test('returns empty array when no entries exist', async () => {
-			const emptyDb = buildMockDb([]);
-			const emptyStore = new SupabaseMediaStore(emptyDb as any, mockStorage as any);
-			const entries = await emptyStore.listMedia();
+			const emptyClient = buildMockClient([]);
+			const store = new SupabaseMediaStore(emptyClient);
+			const entries = await store.listMedia();
 			expect(entries).toEqual([]);
 		});
 
 		test('includes public_url for each entry', async () => {
+			const store = new SupabaseMediaStore(mockClient);
 			const entries = await store.listMedia();
 			expect(entries.every((e) => e.public_url.startsWith('https://'))).toBe(true);
 		});
 
 		test('propagates Supabase errors', async () => {
-			const errorDb: any = {
-				from: () => ({
-					select: () => ({
-						order: () => Promise.resolve({ data: null, error: { message: 'Connection failed' } }),
-					}),
+			const errorClient = buildMockClient([...mockMediaRows]);
+			errorClient.from = () => ({
+				select: () => ({
+					order: () => Promise.resolve({ data: null, error: { message: 'Connection failed' } }),
 				}),
-			};
-			const errorStorage = buildErrorStorage();
-			const errorStore = new SupabaseMediaStore(errorDb, errorStorage as any);
-			await expect(errorStore.listMedia()).rejects.toThrow('Connection failed');
+			});
+			const store = new SupabaseMediaStore(errorClient);
+			await expect(store.listMedia()).rejects.toThrow('Connection failed');
 		});
 
 		test('handles null data gracefully', async () => {
-			const nullDb: any = {
-				from: () => ({
-					select: () => ({
-						order: () => Promise.resolve({ data: null, error: null }),
-					}),
+			const nullClient = buildMockClient([...mockMediaRows]);
+			nullClient.from = () => ({
+				select: () => ({
+					order: () => Promise.resolve({ data: null, error: null }),
 				}),
-			};
-			const nullStorage = buildErrorStorage();
-			const nullStore = new SupabaseMediaStore(nullDb, nullStorage as any);
-			const entries = await nullStore.listMedia();
+			});
+			const store = new SupabaseMediaStore(nullClient);
+			const entries = await store.listMedia();
 			expect(entries).toEqual([]);
 		});
 	});
 
 	describe('uploadMedia', () => {
 		test('uploads file to Supabase Storage and inserts media_entries row', async () => {
+			const store = new SupabaseMediaStore(mockClient);
 			const testFile = new File(['test content'], 'test-image.png', { type: 'image/png' });
 			const result = await store.uploadMedia(testFile, 'images');
 
@@ -245,45 +229,47 @@ describe('SupabaseMediaStore', () => {
 		});
 
 		test('sanitizes filenames with special characters', async () => {
+			const store = new SupabaseMediaStore(mockClient);
 			const testFile = new File(['data'], 'my file (1).png', { type: 'image/png' });
 			const result = await store.uploadMedia(testFile, 'images');
 			expect(result.filename).toBe('my_file__1_.png');
 		});
 
 		test('rejects unsupported bucket names', async () => {
+			const store = new SupabaseMediaStore(mockClient);
 			const testFile = new File(['data'], 'test.jpg', { type: 'image/jpeg' });
 			await expect(store.uploadMedia(testFile as any, 'videos' as any)).rejects.toThrow('Unsupported bucket');
 		});
 
 		test('links entry to a post_id when provided', async () => {
+			const store = new SupabaseMediaStore(mockClient);
 			const testFile = new File(['data'], 'linked.png', { type: 'image/png' });
 			const result = await store.uploadMedia(testFile, 'images', 'post-456');
 			expect(result.post_id).toBe('post-456');
 		});
 
 		test('propagates Supabase Storage upload errors', async () => {
-			const failStorage = buildErrorStorage(new Error('Upload failed'));
-			const failDb = buildMockDb([...mockMediaRows]);
-			const failStore = new SupabaseMediaStore(failDb as any, failStorage as any);
+			const errClient = buildMockClient([...mockMediaRows]);
+			errClient.setUploadError(new Error('Upload failed'));
+			const store = new SupabaseMediaStore(errClient);
 			const testFile = new File(['data'], 'fail.png', { type: 'image/png' });
-			await expect(failStore.uploadMedia(testFile, 'images')).rejects.toThrow('Upload failed');
+			await expect(store.uploadMedia(testFile, 'images')).rejects.toThrow('Upload failed');
 		});
 
 		test('propagates Supabase insert errors', async () => {
-			const failStorage = buildErrorStorage();
-			const failDb: any = {
-				from: () => ({
-					insert: () => ({
-						select: () => Promise.resolve({ data: null, error: { message: 'RLS denied' } }),
-					}),
+			const errClient = buildMockClient([...mockMediaRows]);
+			errClient.from = () => ({
+				insert: () => ({
+					select: () => Promise.resolve({ data: null, error: { message: 'RLS denied' } }),
 				}),
-			};
-			const failStore = new SupabaseMediaStore(failDb as any, failStorage as any);
+			});
+			const store = new SupabaseMediaStore(errClient);
 			const testFile = new File(['data'], 'fail.png', { type: 'image/png' });
-			await expect(failStore.uploadMedia(testFile, 'images')).rejects.toThrow('RLS denied');
+			await expect(store.uploadMedia(testFile, 'images')).rejects.toThrow('RLS denied');
 		});
 
 		test('supports audio bucket', async () => {
+			const store = new SupabaseMediaStore(mockClient);
 			const testFile = new File(['audio data'], 'song.mp3', { type: 'audio/mpeg' });
 			const result = await store.uploadMedia(testFile, 'audio');
 			expect(result.bucket).toBe('audio');
@@ -291,6 +277,7 @@ describe('SupabaseMediaStore', () => {
 		});
 
 		test('supports fonts bucket', async () => {
+			const store = new SupabaseMediaStore(mockClient);
 			const testFile = new File(['font data'], 'custom.woff2', { type: 'font/woff2' });
 			const result = await store.uploadMedia(testFile, 'fonts');
 			expect(result.bucket).toBe('fonts');
@@ -300,6 +287,7 @@ describe('SupabaseMediaStore', () => {
 
 	describe('deleteMedia', () => {
 		test('deletes from Supabase Storage and removes media_entries row', async () => {
+			const store = new SupabaseMediaStore(mockClient);
 			await store.deleteMedia(mockMediaRows[0]);
 
 			const entries = await store.listMedia();
@@ -308,31 +296,32 @@ describe('SupabaseMediaStore', () => {
 		});
 
 		test('handles storage delete errors but still removes DB row', async () => {
-			const failStorage = buildErrorStorage(null, new Error('Storage error'));
-			const failDb = buildMockDb([...mockMediaRows]);
-			const failStore = new SupabaseMediaStore(failDb as any, failStorage as any);
-			await expect(failStore.deleteMedia(mockMediaRows[0])).resolves.toBeUndefined();
+			const errClient = buildMockClient([...mockMediaRows]);
+			errClient.setRemoveError(new Error('Storage error'));
+			const store = new SupabaseMediaStore(errClient);
+			await expect(store.deleteMedia(mockMediaRows[0])).resolves.toBeUndefined();
 		});
 
 		test('propagates media_entries delete errors', async () => {
-			const failDb: any = {
-				from: () => ({
-					delete: () => ({
-						eq: () => Promise.resolve({ error: { message: 'DB error' } }),
-					}),
+			const errClient = buildMockClient([...mockMediaRows]);
+			errClient.from = () => ({
+				delete: () => ({
+					eq: () => Promise.resolve({ error: { message: 'DB error' } }),
 				}),
-			};
-			const failStore = new SupabaseMediaStore(failDb, mockStorage as any);
-			await expect(failStore.deleteMedia(mockMediaRows[0])).rejects.toThrow('DB error');
+			});
+			const store = new SupabaseMediaStore(errClient);
+			await expect(store.deleteMedia(mockMediaRows[0])).rejects.toThrow('DB error');
 		});
 
 		test('deletes audio entries', async () => {
+			const store = new SupabaseMediaStore(mockClient);
 			await store.deleteMedia(mockMediaRows[2]);
 			const entries = await store.listMedia();
 			expect(entries.find((e) => e.bucket === 'audio')).toBeUndefined();
 		});
 
 		test('deletes entries linked to a post', async () => {
+			const store = new SupabaseMediaStore(mockClient);
 			await store.deleteMedia(mockMediaRows[1]);
 			const entries = await store.listMedia();
 			expect(entries.find((e) => e.id === 'media-002')).toBeUndefined();

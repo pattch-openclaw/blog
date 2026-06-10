@@ -70,29 +70,19 @@ interface SupabaseQueryClient {
  *
  * Uses the anon key for all operations. RLS policies on the
  * `media_entries` table and Supabase Storage buckets control access.
- *
- * Accepts an optional `db` parameter for testing — pass a mock instead.
  */
 export class SupabaseMediaStore implements MediaStore {
 	private readonly mediaTable = 'media_entries';
 
-	/**
-	 * Public bucket names supported by this store.
-	 */
 	private readonly buckets = ['images', 'audio', 'fonts'] as const;
 
 	private readonly db: SupabaseQueryClient;
 	private readonly storage: SupabaseClient['storage'];
 
-	constructor(db?: SupabaseQueryClient, storageClient?: SupabaseClient) {
-		if (storageClient) {
-			this.storage = storageClient.storage;
-			this.db = db ?? (storageClient as unknown as SupabaseQueryClient);
-		} else {
-			const client = getSupabaseClient();
-			this.storage = client.storage;
-			this.db = client as unknown as SupabaseQueryClient;
-		}
+	constructor(storageClient?: SupabaseClient) {
+		const client = storageClient ?? getSupabaseClient();
+		this.db = client as unknown as SupabaseQueryClient;
+		this.storage = client.storage;
 	}
 
 	/**
