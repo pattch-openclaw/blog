@@ -54,7 +54,8 @@ export interface MediaStore {
 export function getMediaStore(): MediaStore {
 	const env = process.env.CONTENT_STORE?.toLowerCase().trim();
 	if (env === 'supabase') {
-		throw new Error('SupabaseMediaStore not yet implemented');
+		const { SupabaseMediaStore } = require('./supabase-media-store.ts');
+		return new SupabaseMediaStore();
 	}
 	// Default to filesystem store for git mode
 	const { FileSystemMediaStore } = require('./file-media-store.ts');
