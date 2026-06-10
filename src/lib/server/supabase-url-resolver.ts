@@ -9,10 +9,12 @@ const SERVICE_CLIENT = SUPABASE_SERVICE_KEY
 
 /**
  * Regex matching Supabase Storage public URLs in markdown content.
- * Matches: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
+ * Handles both:
+ *   - Correct format:  <base>/storage/v1/object/public/<bucket>/<filename>
+ *   - Broken format:   <base>/storage/v1/object/public/<bucket>/<bucket>/<filename>  (double bucket)
  */
 const SUPABASE_STORAGE_URL = new RegExp(
-	`${SUPABASE_URL}(/storage/v1/object/public/([^/]+)/(.+))`,
+	`${SUPABASE_URL}(/storage/v1/object/public/([^/]+)/((?:images|audio|fonts)/)?([^/]+))`,
 	'g'
 );
 
@@ -30,36 +32,34 @@ export async function replaceSupabaseUrls(content: string, expiresInSeconds = 36
 	}
 
 	const replacements: Array<{ match: string; signedUrl: string }> = [];
+	const seen = new Set<string>();
 
 	SUPABASE_STORAGE_URL.lastIndex = 0;
 	let match;
 	while ((match = SUPABASE_STORAGE_URL.exec(content)) !== null) {
 		const fullUrl = match[1]; // the full URL without the protocol prefix
 		const bucket = match[2];
-		const path = match[3];
+		const _dupBucket = match[3]; // optional double-bucket segment (may be undefined)
+		const filename = match[4];
 
-		// Avoid duplicate requests for the same bucket/path
-		if (replacements.some(r => r.signedUrl !== '')) {
-			// Check if already resolved
-			const exists = replacements.find(
-				r => r.match.startsWith(fullUrl.slice(0, fullUrl.lastIndexOf('/')))
-			);
-			if (exists) continue;
-		}
+		// Deduplicate: use bucket+filename as the key
+		const key = `${bucket}/${filename}`;
+		if (seen.has(key)) continue;
+		seen.add(key);
 
 		try {
 			const { data, error } = await SERVICE_CLIENT.storage
 				.from(bucket)
-				.createSignedUrl(path, expiresInSeconds);
+				.createSignedUrl(`${bucket}/${filename}`, expiresInSeconds);
 
 			if (error) {
-				logger.warn('resolveSupabaseUrls', `Failed to sign ${bucket}/${path}: ${error.message}`);
+				logger.warn('resolveSupabaseUrls', `Failed to sign ${bucket}/${filename}: ${error.message}`);
 				replacements.push({ match: fullUrl, signedUrl: fullUrl }); // keep original
 			} else {
 				replacements.push({ match: fullUrl, signedUrl: data.signedUrl });
 			}
 		} catch (e: any) {
-			logger.warn('resolveSupabaseUrls', `Error signing ${bucket}/${path}: ${e.message}`);
+			logger.warn('resolveSupabaseUrls', `Error signing ${bucket}/${filename}: ${e.message}`);
 			replacements.push({ match: fullUrl, signedUrl: fullUrl });
 		}
 	}
@@ -68,7 +68,6 @@ export async function replaceSupabaseUrls(content: string, expiresInSeconds = 36
 
 	let result = content;
 	for (const { match, signedUrl } of replacements) {
-		// Escape the match for use in replaceAll (it contains special regex chars)
 		result = result.replaceAll(match, signedUrl);
 	}
 

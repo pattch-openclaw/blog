@@ -90,15 +90,20 @@ export class SupabaseMediaStore implements MediaStore {
 	 * Build the public URL for a media entry.
 	 *
 	 * Supabase Storage public URLs follow this pattern:
-	 * https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
+	 * https://<project>.supabase.co/storage/v1/object/public/<bucket>/<filename>
+	 *
+	 * The stored path is bucket-prefixed (e.g., 'images/filename.png'),
+	 * so we strip the bucket segment to avoid duplication.
 	 */
 	private buildPublicUrl(bucket: string, path: string): string {
 		const url = process.env.SUPABASE_URL;
 		if (!url) {
-			// Fallback: construct from project name in URL
 			return `https://supabase.io/storage/v1/object/public/${bucket}/${path}`;
 		}
-		return `${url}/storage/v1/object/public/${bucket}/${path}`;
+
+		// path is like 'images/filename.png'; strip the bucket prefix to avoid double-insertion
+		const pathWithoutBucket = path.startsWith(bucket + '/') ? path.slice(bucket.length + 1) : path;
+		return `${url}/storage/v1/object/public/${bucket}/${pathWithoutBucket}`;
 	}
 
 	/**
