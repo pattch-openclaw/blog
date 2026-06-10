@@ -34,7 +34,8 @@ interface PostSummary {
 }
 
 export const load: PageServerLoad = async () => {
-	const posts = await gitStore.listPosts();
+	const stores = await getStores();
+	const posts = await stores.gitStore.listPosts();
 	// Return only metadata (exclude content for the list)
 	const postList: PostSummary[] = posts.map((p) => ({
 		slug: p.slug,
@@ -52,10 +53,11 @@ export const load: PageServerLoad = async () => {
  * Migrate a single git post (including its media) to Supabase.
  */
 const migratePostToSupabase = async (slug: string): Promise<{ success: boolean; postSlug: string; mediaCount: number; errors: string[] }> => {
+	const stores = await getStores();
 	const errors: string[] = [];
 
 	// 1. Read the post from git
-	const post = await gitStore.getPost(slug);
+	const post = await stores.gitStore.getPost(slug);
 	if (!post) {
 		throw new Error(`Post not found: ${slug}`);
 	}
@@ -90,7 +92,7 @@ const migratePostToSupabase = async (slug: string): Promise<{ success: boolean; 
 		const file = new File([buffer], path.basename(mediaPath), { type: detectMimeType(mediaPath) });
 
 		try {
-			const entry = await supabaseMediaStore.uploadMedia(file, bucket);
+			const entry = await stores.supabaseMediaStore.uploadMedia(file, bucket);
 			pathToUrl.set(mediaPath, entry.public_url);
 			mediaCount++;
 		} catch (e: any) {
