@@ -12,9 +12,18 @@ export async function load({ params }) {
 	}
 
 	// For Supabase-hosted posts, replace public Storage URLs with signed URLs
-	const content = getContentStore() === 'supabase' ? await replaceSupabaseUrls(post.content || '') : post.content;
-
-	logger.debug('blog.load', `getContentStore=${getContentStore()}, content replaced: ${content !== post.content}`);
+	const originalContent = post.content || '';
+	const contentStore = getContentStore();
+	
+	logger.debug('blog.load', `Processing post ${params.slug}, contentStore=${contentStore}`);
+	logger.debug('blog.load', `Content length: ${originalContent.length} characters`);
+	
+	const hasSupabaseUrl = originalContent.includes('storage/v1/object/public');
+	logger.debug('blog.load', `Has Supabase URL in content: ${hasSupabaseUrl}`);
+	
+	const content = contentStore === 'supabase' ? await replaceSupabaseUrls(originalContent) : originalContent;
+	
+	logger.debug('blog.load', `Content replaced: ${content !== originalContent}`);
 
 	return { post: { ...post, content } };
 }
