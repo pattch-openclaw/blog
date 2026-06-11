@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { marked } from 'marked';
 	let { data } = $props();
-	let { post } = data;
-	let contentHtml = $derived(marked.parse(post.content || ''));
+	let post = $derived(data.post);
+	let contentHtml = $derived(marked.parse(post?.content || ''));
 </script>
 
 <svelte:head>
