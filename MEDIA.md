@@ -76,11 +76,11 @@ Implemented Supabase-specific logic in `src/lib/server/supabase-media-store.ts`:
 https://<SUPABASE_PROJECT>.supabase.co/storage/v1/object/public/images/<filename>
 ```
 
-### Step 4: Wire Media Selection into Existing Code
+### Step 4: Wire Media Selection into Existing Code ✅ COMPLETED
 
-#### 4a: Media store selection
+#### 4a: Media store selection ✅ COMPLETED
 
-Add a media store selector in `media-store.ts` or a new `media-store-selector.ts`:
+Add a media store selector in `src/lib/server/media-store.ts`:
 
 ```ts
 export function getMediaStore(): MediaStore {
@@ -90,20 +90,32 @@ export function getMediaStore(): MediaStore {
 }
 ```
 
-#### 4b: Update `/admin/media/+page.server.ts`
+#### 4b: Update `/admin/media/+page.server.ts` ✅ COMPLETED
 
 Replace direct `fs` operations with `MediaStore` calls:
 - `load()`: call `getMediaStore().listMedia()` instead of `fs.readdir`
 - `upload` action: call `getMediaStore().uploadMedia(file, type, undefined)`
 - `delete` action: call `getMediaStore().deleteMedia(entry)`
 
-#### 4c: Update `/admin/write/+page.svelte` image picker
+#### 4c: Update `/admin/write/+page.svelte` image picker ✅ COMPLETED
 
-The write page's "Insert Image" dropdown currently fetches from a server-side action that reads the local `media/images/` directory. Update it to use `getMediaStore().listMedia()` for the image source, returning entries with their `public_url` for display and markdown insertion.
+The write page's "Insert Image" dropdown now uses `getMediaStore().listMedia()` for the image source, returning entries with their `public_url` for display and markdown insertion.
 
-### Step 5: Update `/media/[...file]/+server.ts`
+### Step 4a: Supabase Media Upload ✅ COMPLETED
 
-Replace local file serving with Supabase Storage proxying for `CONTENT_STORE=supabase`:
+- Images correctly upload to Supabase Storage when `CONTENT_STORE=supabase`
+- Uploads are stored in the appropriate bucket (`images`, `audio`, `fonts`)
+- Media entries are properly recorded in the `media_entries` Postgres table
+
+### Step 4b: Supabase Media Display ✅ COMPLETED
+
+- Blog post images use signed URLs from Supabase Storage
+- Images render correctly on published posts
+- Public URL construction works for all media types
+
+### Step 5: Update `/media/[...file]/+server.ts` ✅ COMPLETED
+
+Replaced local file serving with Supabase Storage proxying for `CONTENT_STORE=supabase`:
 - Download the file from `supabase.storage.from(bucket).download(path)`
 - Stream it back with correct MIME type and cache headers
 - For `CONTENT_STORE=git`, fall back to local `fs.readFileSync()`
@@ -116,9 +128,9 @@ Create a migration script (e.g., `scripts/migrate-media.ts`) that:
 2. For each file: uploads to Supabase Storage, inserts into `media_entries`
 3. Logs results and errors
 
-After migration is verified, clean up local `media/` directory and remove git tracking.
+**Status:** Not yet implemented. This is only needed if you want to migrate existing local media to Supabase. Since your migration is working with new uploads, this is optional.
 
-### Step 7: Enable on Sandbox
+### Step 7: Enable on Sandbox ✅ COMPLETED
 
 - Verify sandbox runs with `CONTENT_STORE=supabase` (already set per README)
 - Confirm `/admin/media` loads images from Supabase Storage
@@ -132,6 +144,26 @@ After migration is verified, clean up local `media/` directory and remove git tr
 - Remove `media/` directory from local dev (optional, or keep as empty)
 - Update `README.md` project notes to reflect completed media migration
 - Remove "Media integration" from pending items in README
+
+---
+
+## ✅ Media Integration Complete!
+
+**What's been implemented:**
+- ✅ `MediaStore` interface abstraction
+- ✅ `FileSystemMediaStore` for `CONTENT_STORE=git` mode
+- ✅ `SupabaseMediaStore` for `CONTENT_STORE=supabase` mode
+- ✅ Media store selector logic
+- ✅ `/admin/media` page updated to use `MediaStore`
+- ✅ `/admin/write` image picker uses `MediaStore.listMedia()`
+- ✅ `/media/[...file]/+server.ts` proxies to Supabase when configured
+- ✅ Images upload correctly to Supabase Storage
+- ✅ Blog posts use signed Supabase URLs for images
+
+**Remaining work:**
+- 🔄 One-shot migration script (optional - only if you have existing local media to migrate)
+- 🔄 Cleanup steps (update README, remove old media utilities)
+- 🔄 Optional: Add image preview/watermark functionality
 
 ---
 
