@@ -15,10 +15,10 @@ const config = {
 	kit: {
 		adapter: adapter(),
 		csrf: {
-			// Disable CSRF origin checking because adapter-node sits behind 
-			// Cloudflare Tunnels/proxies where the Origin header (e.g., https://drafts.domain.com)
-			// will not match the local Host header (http://localhost:3001).
-			checkOrigin: false
+			// Use trustedOrigins instead of deprecated checkOrigin
+			// For local development, we trust localhost. For production, this should be
+			// set to your actual deployed domain(s) behind Cloudflare Tunnels
+			trustedOrigins: ['http://localhost:*']
 		}
 	}
 };
