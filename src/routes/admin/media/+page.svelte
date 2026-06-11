@@ -53,10 +53,10 @@
             <h2 class="gallery-title">Uploaded Images ({data.images.length})</h2>
             <div class="gallery">
                 {#each data.images as image}
-                    <div class="gallery-item {selectedImage === image.path ? 'selected' : ''}" onclick={() => selectedImage = image.path}>
+                    <button class="gallery-item {selectedImage === image.path ? 'selected' : ''}" type="button" onclick={() => selectedImage = image.path}>
                         <img src={image.path} alt={image.name} loading="lazy" />
                         <span class="gallery-name" title={image.name}>{image.name}</span>
-                    </div>
+                    </button>
                 {/each}
             </div>
             {#if selectedImage}
@@ -163,11 +163,14 @@
     }
 
     .gallery-item {
-        cursor: pointer;
         border-radius: 6px;
         border: 2px solid transparent;
         overflow: hidden;
         transition: border-color 0.2s, box-shadow 0.2s;
+        background: none;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
     }
 
     .gallery-item:hover {
