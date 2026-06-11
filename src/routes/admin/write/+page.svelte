@@ -4,8 +4,25 @@
 
 	let { data, form } = $props();
 	
-	let title = $state(data?.title || '');
-	let slug = $state(data?.slug || '');
+	// Use derived values from props for initial state, $state for mutable values
+	let title = $state('');
+	let slug = $state('');
+	let content = $state('');
+	let description = $state('');
+	let author = $state('sam');
+	let tags = $state<string[]>([]);
+	
+	// Initialize state from props on mount
+	$effect(() => {
+		if (data) {
+			title = data?.title || '';
+			slug = data?.slug || '';
+			content = data?.content || '';
+			description = data?.description || '';
+			author = data?.author || 'sam';
+			tags = data?.tags || [];
+		}
+	});
 	
 	$effect(() => {
 		if (!data?.isEdit && title) {
@@ -13,8 +30,6 @@
 		}
 	});
 
-	let content = $state(data?.content || '');
-	let description = $state(data?.description || '');
 	let isPreview = $state(false);
 	let parsedContent = $derived(marked.parse(content));
 
@@ -27,12 +42,10 @@
 		{ value: 'ai', label: 'ai 🦞' },
 		{ value: '__custom__', label: 'Other...' }
 	];
-	let author = $state(data?.author || 'sam');
 	let customAuthor = $state('');
 	let displayAuthor = $derived(author === '__custom__' ? customAuthor : author);
 
 	// Tag state
-	let tags = $state<string[]>(data?.tags || []);
 	let tagInput = $state('');
 	let showTagSuggestions = $state(false);
 	let tagSuggestions = $derived(
@@ -159,7 +172,7 @@
 				<div class="form-group">
 					<label for="tags">Tags</label>
 					<input type="hidden" name="tags" value={tags.join(',')} />
-					<div class="tags-input-container" tabindex="0" onkeydown={handleTagKeydown}>
+					<div class="tags-input-container" role="combobox" aria-haspopup="listbox" aria-expanded={showTagSuggestions} aria-controls="tag-listbox" tabindex="0" onkeydown={handleTagKeydown}>
 						{#each tags as tag}
 						<span class="tag-badge">
 							{tag}
@@ -177,9 +190,13 @@
 							autocomplete="off"
 						/>
 						{#if showTagSuggestions && tagSuggestions.length}
-							<ul class="tag-suggestions">
+							<ul class="tag-suggestions" role="listbox" id="tag-listbox" tabindex="-1">
 								{#each tagSuggestions as suggestion}
-									<li onclick={() => addTag(suggestion)}>{suggestion}</li>
+									<li role="option" aria-selected="false">
+										<button type="button" class="tag-suggestion-btn" onclick={() => addTag(suggestion)} onkeydown={(e) => e.key === 'Enter' && addTag(suggestion)}>
+											{suggestion}
+										</button>
+									</li>
 								{/each}
 							</ul>
 						{/if}
@@ -490,7 +507,8 @@
 		cursor: text;
 	}
 
-	.tags-input-container:focus-within {
+	.tags-input-container:focus-within,
+	.tags-input-container:focus {
 		outline: 2px solid var(--link-color);
 		border-color: transparent;
 	}
@@ -538,13 +556,25 @@
 	}
 
 	.tag-suggestions li {
+		list-style: none;
+		padding: 0;
+	}
+
+	.tag-suggestion-btn {
+		width: 100%;
+		text-align: left;
 		padding: 0.5rem 0.75rem;
 		cursor: pointer;
 		font-size: 0.875rem;
+		background: none;
+		border: none;
+		border-radius: 0;
 	}
 
-	.tag-suggestions li:hover {
+	.tag-suggestion-btn:hover,
+	.tag-suggestion-btn:focus {
 		background: rgba(128, 128, 128, 0.1);
+		outline: none;
 	}
 
 	.image-picker-controls {

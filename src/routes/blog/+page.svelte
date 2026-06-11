@@ -4,8 +4,12 @@
 	let { data, url } = $props();
 
 	// Get initial tag filter from URL
-	const initialTag = $derived(url?.searchParams.get('tag') || '');
-	let activeTag = $state(initialTag);
+	let activeTag = $state('');
+
+	// Sync activeTag when URL changes (e.g., back/forward navigation)
+	$effect(() => {
+		activeTag = url?.searchParams.get('tag') || '';
+	});
 
 	// Compute unique authors from published posts (non-staging) or all posts (staging)
 	const authors = $derived(
@@ -118,16 +122,19 @@
 {/if}
 
 {#if authors.length > 0}
-	<div class="author-filter">
+	<div class="author-filter" role="group" aria-label="Filter by author">
 		{#each authors as author}
-			<span
+			<button
+				type="button"
 				class="author-pill"
 				class:author-active={authorFilters[author]}
 				onclick={() => toggleAuthor(author)}
+				onkeydown={(e) => e.key === 'Enter' && toggleAuthor(author)}
+				aria-pressed={authorFilters[author]}
 			>
 				<span class="author-name">{author}</span>
 				<span class="author-count">{data.posts.filter((p: typeof data.posts[number]) => p.author === author).length}</span>
-			</span>
+			</button>
 		{/each}
 	</div>
 {/if}

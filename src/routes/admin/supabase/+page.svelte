@@ -13,27 +13,27 @@
 
 	<div class="credentials">
 		<div class="field">
-			<label>JWT Role (decoded from SUPABASE_ANON_KEY)</label>
+			<h3>JWT Role (decoded from SUPABASE_ANON_KEY)</h3>
 			<code>{data.jwtRole ?? '(unable to decode)'}</code>
 		</div>
 		<div class="field">
-			<label>SUPABASE_URL</label>
+			<h3>SUPABASE_URL</h3>
 			<code>{data.envPairs.SUPABASE_URL}</code>
 		</div>
 		<div class="field">
-			<label>SUPABASE_ANON_KEY (preview)</label>
+			<h3>SUPABASE_ANON_KEY (preview)</h3>
 			<code>{data.envPairs.SUPABASE_ANON_KEY}</code>
 		</div>
 		<div class="field">
-			<label>SUPABASE_ANON_KEY (full)</label>
+			<h3>SUPABASE_ANON_KEY (full)</h3>
 			<code>{data.envPairs.SUPABASE_ANON_KEY_FULL}</code>
 		</div>
 		<div class="field">
-			<label>SUPABASE_SERVICE_KEY (preview)</label>
+			<h3>SUPABASE_SERVICE_KEY (preview)</h3>
 			<code>{data.envPairs.SUPABASE_SERVICE_KEY}</code>
 		</div>
 		<div class="field">
-			<label>SUPABASE_URL_TEST (hardcoded)</label>
+			<h3>SUPABASE_URL_TEST (hardcoded)</h3>
 			<code>{data.envPairs.SUPABASE_URL_TEST}</code>
 		</div>
 	</div>
@@ -67,9 +67,11 @@
 		gap: 0.5rem;
 	}
 
-	label {
+	h3 {
+		font-size: 0.875rem;
 		font-weight: 600;
 		color: #444;
+		margin: 0;
 	}
 
 	code {
