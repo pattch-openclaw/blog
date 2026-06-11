@@ -84,12 +84,6 @@
 		margin-bottom: 2rem;
 	}
 
-	.subtitle code {
-		background: #f4f4f5;
-		padding: 0.1em 0.3em;
-		border-radius: 3px;
-	}
-
 	p {
 		color: #444;
 		line-height: 1.6;
