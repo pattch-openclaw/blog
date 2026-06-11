@@ -16,9 +16,9 @@ const config = {
 		adapter: adapter(),
 		csrf: {
 			// Use trustedOrigins instead of deprecated checkOrigin
-			// For local development, we trust localhost. For production, this should be
-			// set to your actual deployed domain(s) behind Cloudflare Tunnels
-			trustedOrigins: ['http://localhost:*']
+			// For local development, we trust localhost. For staging/production,
+			// we trust theSTS domains behind Cloudflare Tunnels
+			trustedOrigins: ['http://localhost:*', 'https://sts.dev', 'https://www.sts.dev', 'https://staging.sts.dev', 'https://sandbox.sts.dev']
 		}
 	}
 };
