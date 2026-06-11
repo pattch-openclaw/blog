@@ -129,11 +129,6 @@
         overflow-y: auto;
     }
 
-    .ts {
-        color: #569cd6;
-        opacity: 0.9;
-    }
-
     .error-log {
         color: #ffb3b3;
         border: 1px solid #4a0000;
