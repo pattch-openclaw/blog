@@ -8,7 +8,7 @@ export const load = async ({ url }) => {
 	// Get images from MediaStore (works for both git and supabase)
 	let images: string[] = [];
 	try {
-		const mediaStore = await getMediaStore();
+		const mediaStore = getMediaStore();
 		const mediaEntries = await mediaStore.listMedia();
 		images = mediaEntries
 			.filter(e => e.bucket === 'images')
