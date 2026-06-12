@@ -1,6 +1,7 @@
 import type { Post, PostStore } from './posts-store';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseClient } from './supabase-client';
+import { getMediaStore, SupabaseMediaStore } from './media-store';
 import { logger } from '$lib/logging';
 
 /**
@@ -239,6 +240,20 @@ export class SupabasePostStore implements PostStore {
 	async deletePost(slug: string): Promise<void> {
 		logger.agent('supabase.deletePost', 'info', `Deleting post: ${slug}`);
 
+		// Get the post first to extract its ID
+		const post = await this.getPost(slug);
+		if (!post) {
+			logger.agent('supabase.deletePost', 'warn', `Post not found: ${slug}`);
+			return; // Already deleted
+		}
+
+		// Clear media entries associated with this post (if using Supabase)
+		const mediaStore = getMediaStore();
+		if (mediaStore instanceof SupabaseMediaStore) {
+			await mediaStore.deleteMediaByPostId(post.id);
+		}
+
+		// Delete the post
 		const { error } = await this.db
 			.from(this.tableName)
 			.delete()

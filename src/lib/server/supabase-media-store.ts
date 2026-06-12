@@ -342,4 +342,26 @@ export class SupabaseMediaStore implements MediaStore {
 
 		logger.agent('supabase.deleteMedia', 'info', `Deleted media entry: ${entry.filename} (id: ${entry.id})`);
 	}
+
+	/**
+	 * Delete all media entries associated with a specific post ID.
+	 * Does NOT delete the actual media files from storage (may be shared across posts).
+	 * Only clears the post_id linkage in the database.
+	 */
+	async deleteMediaByPostId(postId: string): Promise<void> {
+		logger.agent('supabase.deleteMediaByPostId', 'info', `Clearing media entries for post: ${postId}`);
+
+		const { error } = await this.db
+			.from(this.mediaTable)
+			.update({ post_id: null })
+			.eq('post_id', postId);
+
+		if (error) {
+			const msg = `Failed to clear media entries for post ${postId}: ${error.message}`;
+			logger.agent('supabase.deleteMediaByPostId', 'error', msg);
+			throw new Error(msg);
+		}
+
+		logger.agent('supabase.deleteMediaByPostId', 'info', `Cleared media entries for post: ${postId}`);
+	}
 }

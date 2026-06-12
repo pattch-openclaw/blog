@@ -44,10 +44,21 @@ export interface MediaStore {
 	 * Delete a media entry by its MediaEntry reference.
 	 */
 	deleteMedia(entry: MediaEntry): Promise<void>;
+
+	/**
+	 * Delete all media entries associated with a specific post ID.
+	 * This is used when deleting a blog post to clean up orphaned media references.
+	 * The actual media content in storage should NOT be deleted (shared media).
+	 * Only the database rows with matching post_id should be removed.
+	 */
+	deleteMediaByPostId(postId: string): Promise<void>;
 }
 
 import { SupabaseMediaStore } from './supabase-media-store.js';
 import { FileSystemMediaStore } from './file-media-store.js';
+
+// Re-export implementations
+export { SupabaseMediaStore, FileSystemMediaStore };
 
 /**
  * Configuration for selecting the active media store provider.
