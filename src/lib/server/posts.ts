@@ -1,5 +1,6 @@
 import { getContentStore } from './posts-store';
 import type { PostStore } from './posts-store';
+import { getMediaStore } from './media-store';
 
 let _store: PostStore | null = null;
 
@@ -43,4 +44,4 @@ export async function getAllTags(): Promise<string[]> {
 	return Array.from(tagSet).sort();
 }
 
-export { getStore, getWriteStore, getContentStore };
+export { getStore, getWriteStore, getContentStore, getMediaStore };

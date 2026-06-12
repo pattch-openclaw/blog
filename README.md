@@ -121,6 +121,13 @@ Every time a commit is pushed to the `main` branch, the self-hosted runner will 
 ## Completed Features (as of 2026-05-21)
 - **Image picker on write page:** The `/admin/write` editor has an "Insert Image" dropdown that lists all images from `/media/images/`. Selecting one shows a preview thumbnail, generates the markdown `![alt](/media/images/{filename})`, and provides a copy button. The write page loads the image list server-side in `+page.server.ts`.
 - **Unified media management page:** `/admin/media` provides a gallery view of all uploaded images with thumbnails in a responsive grid. Supports uploading (images/audio/fonts), browsing, and deleting. Upload form lets you pick media type and file; deletes require confirmation. After upload, success alerts display the file path and suggested markdown syntax. Delete action is POST to `?/delete` with file path, removes from filesystem + git index, commits + pushes.
+- **Supabase Media Store:** When `CONTENT_STORE=supabase`, the `/admin/media` page now uses the `SupabaseMediaStore` backend for all media operations. Media is stored in Supabase Storage buckets (`images`, `audio`, `fonts`) and tracked in the `media_entries` Postgres table. The filesystem store (`FileSystemMediaStore`) is used when `CONTENT_STORE=git` (default). Both implementations are swappable via the `MediaStore` interface.
+
+**2026-06-11 improvements to Supabase Media Store:**
+- **Media Entries table is optional for unlinked uploads:** When uploading media on `/admin/media` (not attached to a blog post), the `post_id` field in `media_entries` is set to `null`. This allows storing media without requiring a blog post to be linked first.
+- **Simplified delete flow:** The `/admin/media` delete action now uses entry IDs instead of file paths, making it backend-agnostic (no path parsing needed).
+- **Archived legacy media utilities:** The old filesystem-specific helper functions in `src/lib/server/media.ts` have been archived since `FileSystemMediaStore` implements its own internal logic.
+- **Bucket organization:** Media is now grouped by type (images/audio/fonts) in the UI and stored in corresponding Supabase Storage buckets.
 - **Image deletion:** Available on `/admin/media` — select a gallery item, click Delete, confirm. Removes the file from disk and via `git rm --cached`, commits with `--no-verify`, pushes to origin/main.
 
 ## Post Metadata: Author + Tags (2026-05-22)

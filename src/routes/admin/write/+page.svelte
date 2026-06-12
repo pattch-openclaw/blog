@@ -34,7 +34,19 @@
 	let parsedContent = $derived(marked.parse(content));
 
 	let selectedImage = $state('');
-	let imageMarkdown = $derived(selectedImage ? `![${selectedImage}](/media/images/${selectedImage})` : '');
+
+// Get the full image URL based on storage backend
+function getImageUrl(filename: string): string {
+	if (isSupabase) {
+		// For Supabase, use the Supabase storage URL pattern
+		const supabaseUrl = process.env.SUPABASE_URL || 'https://supabase.io';
+		return `${supabaseUrl}/storage/v1/object/public/images/${filename}`;
+	}
+	return `/media/images/${filename}`;
+}
+
+let imageMarkdown = $derived(selectedImage ? `![${selectedImage}](${getImageUrl(selectedImage)})` : '');
+let imagePreviewUrl = $derived(selectedImage ? getImageUrl(selectedImage) : '');
 
 	// Author state
 	const AUTHORS = [
@@ -59,7 +71,6 @@
 	let pending = $state(false);
 	let isSuccess = $state(false);
 	let successSlug = $state('');
-	let isSupabase = $state(false);
 
 	const handleEnhance = () => {
 		pending = true;
@@ -244,7 +255,7 @@
 								<button type="button" class="btn-close" onclick={() => selectedImage = ''} title="Close preview">
 									<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
 								</button>
-								<img src="/media/images/{selectedImage}" alt="Preview" class="image-preview-img" />
+								<img src={imagePreviewUrl} alt="Preview" class="image-preview-img" />
 								<small><em>Use the copy button above to copy the markdown, then paste into your content.</em></small>
 							</div>
 						{/if}
