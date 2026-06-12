@@ -51,13 +51,13 @@ export interface MediaStore {
  * Valid values: 'git', 'supabase'
  * Defaults to 'git' if unset or unrecognized.
  */
-export function getMediaStore(): MediaStore {
+export async function getMediaStore(): Promise<MediaStore> {
 	const env = process.env.CONTENT_STORE?.toLowerCase().trim();
 	if (env === 'supabase') {
-		const { SupabaseMediaStore } = require('./supabase-media-store.ts');
+		const { SupabaseMediaStore } = await import('./supabase-media-store.js');
 		return new SupabaseMediaStore();
 	}
 	// Default to filesystem store for git mode
-	const { FileSystemMediaStore } = require('./file-media-store.ts');
+	const { FileSystemMediaStore } = await import('./file-media-store.js');
 	return new FileSystemMediaStore();
 }
