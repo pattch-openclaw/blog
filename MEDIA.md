@@ -97,6 +97,12 @@ Replace direct `fs` operations with `MediaStore` calls:
 - `upload` action: call `getMediaStore().uploadMedia(file, type, undefined)`
 - `delete` action: call `getMediaStore().deleteMedia(entry)`
 
+**Changes made (2026-06-11):**
+- Rewrote `load()` to use `MediaStore.listMedia()` and group results by bucket
+- Updated `upload` action to use `MediaStore.uploadMedia()` (no postId = unlinked media)
+- Updated `delete` action to use `MediaStore.deleteMedia()` with entry ID lookup
+- Removed filesystem-specific git operations (`git add/commit/push` now handled by store)
+
 #### 4c: Update `/admin/write/+page.svelte` image picker ✅ COMPLETED
 
 The write page's "Insert Image" dropdown now uses `getMediaStore().listMedia()` for the image source, returning entries with their `public_url` for display and markdown insertion.

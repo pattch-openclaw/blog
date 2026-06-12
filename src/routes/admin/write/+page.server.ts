@@ -1,19 +1,21 @@
 import { fail } from '@sveltejs/kit';
-import fs from 'fs/promises';
-import path from 'path';
-import { getStore, getWriteStore, getPosts, getAllTags, getContentStore } from '$lib/server/posts';
+import { getStore, getWriteStore, getPosts, getAllTags, getContentStore, getMediaStore } from '$lib/server/posts';
 import { logger } from '$lib/logging';
 
 export const load = async ({ url }) => {
 	const slug = url.searchParams.get('slug');
 
+	// Get images from MediaStore (works for both git and supabase)
 	let images: string[] = [];
 	try {
-		const mediaPath = path.join(process.cwd(), 'media', 'images');
-		const files = await fs.readdir(mediaPath);
-		images = files.filter(f => !f.startsWith('.'));
+		const mediaStore = getMediaStore();
+		const mediaEntries = await mediaStore.listMedia();
+		images = mediaEntries
+			.filter(e => e.bucket === 'images')
+			.map(e => e.filename)
+			.sort();
 	} catch (e) {
-		console.error('Failed to load images for picker', e);
+		logger.error('Failed to load images for picker', e);
 	}
 
 	const allTags = await getAllTags();
@@ -40,7 +42,7 @@ export const load = async ({ url }) => {
 			images
 		};
 	} catch (e) {
-		console.error(`Failed to load existing draft for slug: ${slug}`, e);
+		logger.error(`Failed to load existing draft for slug: ${slug}`, e);
 	}
 
 	return { title: '', slug, description: '', content: '', isEdit: false, images, tags: [], author: 'sam', allTags };

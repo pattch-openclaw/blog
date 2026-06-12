@@ -72,7 +72,7 @@
                             <button class="btn-confirm-delete" onclick={async () => {
                                 deleting = false;
                                 const fd = new FormData();
-                                fd.append('path', selectedImage);
+                                fd.append('id', image.id);
                                 const res = await fetch('?/delete', { method: 'POST', body: fd });
                                 if (res.ok) {
                                     window.location.reload();
