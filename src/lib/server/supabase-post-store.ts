@@ -250,8 +250,12 @@ export class SupabasePostStore implements PostStore {
 
 		// Clear media entries associated with this post (if using Supabase)
 		const mediaStore = getMediaStore();
+		logger.agent('supabase.deletePost', 'info', `Media store type: ${mediaStore.constructor.name}`);
 		if (mediaStore instanceof SupabaseMediaStore) {
+			logger.agent('supabase.deletePost', 'info', `Clearing media entries for post ID: ${post.id}`);
 			await mediaStore.deleteMediaByPostId(post.id);
+		} else {
+			logger.agent('supabase.deletePost', 'info', `Not using SupabaseMediaStore, skipping media cleanup`);
 		}
 
 		// Delete the post

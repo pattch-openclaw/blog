@@ -3,6 +3,7 @@
     let { form, data } = $props();
     let uploading = $state(false);
     let selectedImage = $state(null);
+    let selectedImageId = $state<string | null>(null);
     let deleting = $state(false);</script>
 
 <svelte:head>
@@ -53,7 +54,7 @@
             <h2 class="gallery-title">Uploaded Images ({data.images.length})</h2>
             <div class="gallery">
                 {#each data.images as image}
-                    <button class="gallery-item {selectedImage === image.path ? 'selected' : ''}" type="button" onclick={() => selectedImage = image.path}>
+                    <button class="gallery-item {selectedImage === image.path ? 'selected' : ''}" type="button" onclick={() => { selectedImage = image.path; selectedImageId = image.id; }}>
                         <img src={image.path} alt={image.name} loading="lazy" />
                         <span class="gallery-name" title={image.name}>{image.name}</span>
                     </button>
@@ -62,7 +63,7 @@
             {#if selectedImage}
                 <div class="selection-info">
                     <span class="info-path">{selectedImage}</span>
-                    <button class="btn-copy" onclick={() => { navigator.clipboard.writeText(`![${selectedImage.split('/').pop()}](${selectedImage})`); selectedImage = null; }}>Copy Markdown</button>
+                    <button class="btn-copy" onclick={() => { navigator.clipboard.writeText(`![${selectedImage.split('/').pop()}](${selectedImage})`); selectedImage = null; selectedImageId = null; }}>Copy Markdown</button>
                     {#if !deleting}
                         <button class="btn-delete" onclick={() => deleting = true}>Delete</button>
                     {/if}
@@ -72,7 +73,7 @@
                             <button class="btn-confirm-delete" onclick={async () => {
                                 deleting = false;
                                 const fd = new FormData();
-                                fd.append('id', image.id);
+                                fd.append('id', selectedImageId);
                                 const res = await fetch('?/delete', { method: 'POST', body: fd });
                                 if (res.ok) {
                                     window.location.reload();
