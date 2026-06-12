@@ -4,7 +4,7 @@ import { fail } from '@sveltejs/kit';
 import { logger } from '$lib/logging';
 
 export const load: PageServerLoad = async () => {
-	const mediaStore = getMediaStore();
+	const mediaStore = await getMediaStore();
 	const entries = await mediaStore.listMedia();
 	
 	// Group by bucket for the UI
@@ -40,7 +40,7 @@ export const load: PageServerLoad = async () => {
 
 export const actions: Actions = {
 	upload: async ({ request }) => {
-		const mediaStore = getMediaStore();
+		const mediaStore = await getMediaStore();
 		const data = await request.formData();
 		const type = data.get('type')?.toString();
 		const file = data.get('file') as File;
@@ -75,7 +75,7 @@ export const actions: Actions = {
 	},
 
 	delete: async ({ request }) => {
-		const mediaStore = getMediaStore();
+		const mediaStore = await getMediaStore();
 		const data = await request.formData();
 		const entryId = data.get('id')?.toString();
 
