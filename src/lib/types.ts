@@ -1,4 +1,5 @@
 export type Post = {
+	id: string;           // UUID from database
 	title: string;
 	slug: string;
 	description: string;

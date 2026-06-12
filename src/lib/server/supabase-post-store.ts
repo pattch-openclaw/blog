@@ -91,6 +91,7 @@ export class SupabasePostStore implements PostStore {
 
 	private mapRow(row: SupabasePostRow): Post {
 		return {
+			id: row.id,
 			title: row.title ?? '',
 			slug: row.slug ?? '',
 			description: row.description ?? '',
