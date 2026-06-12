@@ -143,13 +143,12 @@ Create a migration script (e.g., `scripts/migrate-media.ts`) that:
 - Confirm `/admin/write` image picker shows Supabase images
 - Confirm published posts render images from Supabase URLs
 
-### Step 8: Cleanup
+### Step 8: Cleanup ✅ COMPLETED
 
-- Archive `media.ts` filesystem utility (no longer needed directly)
-- Remove `fs`-based media logic from routes
-- Remove `media/` directory from local dev (optional, or keep as empty)
-- Update `README.md` project notes to reflect completed media migration
-- Remove "Media integration" from pending items in README
+- ✅ `media.ts` filesystem utility removed (verified)
+- ✅ `fs`-based media logic removed from routes (replaced by MediaStore abstraction)
+- ✅ `README.md` updated to reflect completed media migration
+- ✅ “Media integration” removed from pending items in README
 
 ---
 
@@ -168,7 +167,6 @@ Create a migration script (e.g., `scripts/migrate-media.ts`) that:
 
 **Remaining work:**
 - 🔄 One-shot migration script (optional - only if you have existing local media to migrate)
-- 🔄 Cleanup steps (update README, remove old media utilities)
 - 🔄 Optional: Add image preview/watermark functionality
 
 ---
