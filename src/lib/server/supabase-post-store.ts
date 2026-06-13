@@ -199,6 +199,9 @@ export class SupabasePostStore implements PostStore {
 
 		const insertedRow = result.data[0] as SupabasePostRow;
 		logger.agent('supabase.savePost', 'info', `Inserted post: ${insertedRow.id} (slug: ${insertedRow.slug})`);
+		// Link media entries to this post based on content
+		await this.linkMediaToPost(insertedRow.id, insertPayload.content);
+		
 		return this.mapRow(insertedRow);
 	}
 
@@ -235,6 +238,11 @@ export class SupabasePostStore implements PostStore {
 		}
 
 		logger.agent('supabase.updatePost', 'info', `Updated post: ${slug}`, { id: (result.data[0] as SupabasePostRow).id });
+		
+		// Link media entries to this post based on content (only if content changed)
+		if (updates.content !== undefined) {
+			await this.linkMediaToPost((result.data[0] as SupabasePostRow).id, updates.content);
+		}
 		return this.mapRow(result.data[0] as SupabasePostRow);
 	}
 
@@ -287,5 +295,75 @@ export class SupabasePostStore implements PostStore {
 		}
 
 		logger.agent('supabase.deletePost', 'info', `Deleted post: ${slug}`);
+	}
+
+	/**
+	 * Extract media URLs from post content and link them to this post by updating post_id.
+	 * Scans for patterns like /media/images/filename.png and /media/audio/filename.mp3
+	 */
+	private async linkMediaToPost(postId: string, content: string | null): Promise<void> {
+		if (!content) return;
+		
+		logger.agent('linkMediaToPost', 'info', `Linking media entries for post: ${postId}`);
+		
+		// Extract media paths from content
+		const mediaPaths: string[] = [];
+		// Match patterns like /media/images/filename.ext, /media/audio/filename.ext, /media/fonts/filename.ext
+		const regex = /\/media\/(images|audio|fonts)\/([^)\s]+)/g;
+		let match;
+		while ((match = regex.exec(content)) !== null) {
+			const fullPath = `/media/${match[1]}/${match[2]}`;
+			if (!mediaPaths.includes(fullPath)) {
+				mediaPaths.push(fullPath);
+			}
+		}
+		
+		if (mediaPaths.length === 0) {
+			logger.agent('linkMediaToPost', 'info', 'No media paths found in content');
+			return;
+		}
+		
+		logger.agent('linkMediaToPost', 'info', `Found ${mediaPaths.length} media paths: ${mediaPaths.join(', ')}`);
+		
+		// Use the Supabase client directly to bypass the narrow interface
+		const supabase = this.db as any;
+		
+		for (const path of mediaPaths) {
+			// Extract bucket and filename from path
+			const parts = path.split('/');
+			if (parts.length < 3) continue;
+			
+			const bucket = parts[1] as 'images' | 'audio' | 'fonts';
+			const filename = parts[2];
+			
+			logger.agent('linkMediaToPost', 'info', `Looking up media entry: bucket=${bucket}, filename=${filename}`);
+			
+			// Find the media entry by bucket and filename
+			const { data, error } = await supabase.from('media_entries')
+				.select('id, path, filename, post_id')
+				.eq('bucket', bucket)
+				.eq('filename', filename);
+			
+			if (error) {
+				logger.agent('linkMediaToPost', 'warn', `Failed to lookup media entry: ${error.message}`);
+				continue;
+			}
+			
+			if (!data || data.length === 0) {
+				logger.agent('linkMediaToPost', 'info', `No media entry found for ${path}`);
+				continue;
+			}
+			
+			for (const entry of data) {
+				logger.agent('linkMediaToPost', 'info', `Linking entry ${entry.id} to post ${postId} (was post_id=${entry.post_id})`);
+				
+				// Update post_id
+				await supabase.from('media_entries')
+					.update({ post_id: postId })
+					.eq('id', entry.id);
+			}
+		}
+		
+		logger.agent('linkMediaToPost', 'info', `Completed linking media entries for post: ${postId}`);
 	}
 }

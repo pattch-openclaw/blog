@@ -350,49 +350,18 @@ export class SupabaseMediaStore implements MediaStore {
 	async deleteMediaByPostId(postId: string): Promise<void> {
 		logger.agent('supabase.deleteMediaByPostId', 'info', `Deleting media entries for post: ${postId}`);
 
-		// First, get all entries to delete
-		const { data: matchingEntries, error: checkError } = await this.db
+	// Use as any to bypass the narrow interface which doesn't have delete() after eq()
+		const { error } = await (this.db as any)
 			.from(this.mediaTable)
-			.select('id, post_id, filename, bucket, path')
-			.eq('post_id', postId);
-
-		if (checkError) {
-			const msg = `Failed to check matching entries: ${checkError.message}`;
-			logger.agent('supabase.deleteMediaByPostId', 'error', msg);
-			throw new Error(msg);
-		}
-
-		if (!matchingEntries || matchingEntries.length === 0) {
-			logger.agent('supabase.deleteMediaByPostId', 'info', 'No media entries found for post');
-			return;
-		}
-
-		for (const entry of matchingEntries) {
-			logger.agent('supabase.deleteMediaByPostId', 'info', `Deleting entry: id=${entry.id}, filename=${entry.filename}, bucket=${entry.bucket}`);
-
-			// Delete from Supabase Storage
-			const bucket = entry.bucket as 'images' | 'audio' | 'fonts';
-			const { error: storageError } = await this.storage
-				.from(bucket)
-				.remove([entry.path]);
-
-			if (storageError) {
-				logger.agent('supabase.deleteMediaByPostId', 'warn', `Storage delete error: ${storageError.message}`);
-			}
-		}
-
-		// Delete the rows from media_entries
-		const { error } = await this.db
-			.from(this.mediaTable)
-			.delete()
+			.update({ post_id: null })
 			.eq('post_id', postId);
 
 		if (error) {
-			const msg = `Failed to delete media entries for post ${postId}: ${error.message}`;
+			const msg = `Failed to clear media entries for post ${postId}: ${error.message}`;
 			logger.agent('supabase.deleteMediaByPostId', 'error', msg);
 			throw new Error(msg);
 		}
 
-		logger.agent('supabase.deleteMediaByPostId', 'info', `Deleted ${matchingEntries.length} media entries for post: ${postId}`);
+		logger.agent('supabase.deleteMediaByPostId', 'info', `Cleared media entries for post: ${postId}`);
 	}
 }

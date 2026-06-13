@@ -183,4 +183,10 @@ export class FileSystemMediaStore implements MediaStore {
 
 		await execAsync('git push --no-verify origin main');
 	}
+
+	async deleteMediaByPostId(postId: string): Promise<void> {
+		// For git mode, media is not linked to posts in a database,
+		// so this is a no-op. The filesystem just stores all media files.
+		logger.agent('FileSystemMediaStore.deleteMediaByPostId', 'info', 'No-op for git mode (no database linkage)');
+	}
 }
