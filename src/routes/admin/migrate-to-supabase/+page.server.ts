@@ -58,16 +58,41 @@ const migratePostToSupabase = async (slug: string): Promise<{ success: boolean; 
 	const errors: string[] = [];
 
 	// 1. Read the post from git
-	const post = await stores.gitStore.getPost(slug);
-	if (!post) {
+	const gitPost = await stores.gitStore.getPost(slug);
+	if (!gitPost) {
 		throw new Error(`Post not found: ${slug}`);
 	}
 
-	// 2. Find media referenced in the post content
-	const mediaFiles = extractMediaPaths(post.content);
+	// 2. Save the post to Supabase first to get its ID
+	const supabasePost: Omit<Post, 'date' | 'published'> = {
+		title: gitPost.title,
+		slug: gitPost.slug,
+		description: gitPost.description,
+		content: gitPost.content,
+		author: gitPost.author,
+		tags: gitPost.tags,
+	};
+
+	let supabasePostWithId: Post;
+	try {
+		supabasePostWithId = await stores.supabasePostStore.savePost(supabasePost);
+		logger.agent('migratePost', 'info', `Saved post to Supabase with ID: ${supabasePostWithId.id}`);
+	} catch (e: any) {
+		errors.push(`Failed to save post to Supabase: ${e.message}`);
+		logger.error('migratePost', 'save failed', { slug, error: e.message });
+		return {
+			success: false,
+			postSlug: slug,
+			mediaCount: 0,
+			errors,
+		};
+	}
+
+	// 3. Find media referenced in the post content
+	const mediaFiles = extractMediaPaths(supabasePostWithId.content);
 	let mediaCount = 0;
 
-	// 3. Build a map of old media paths to new Supabase public URLs
+	// 4. Build a map of old media paths to new Supabase public URLs
 	const pathToUrl = new Map<string, string>();
 
 	for (const mediaPath of mediaFiles) {
@@ -93,7 +118,8 @@ const migratePostToSupabase = async (slug: string): Promise<{ success: boolean; 
 		const file = new File([buffer], path.basename(mediaPath), { type: detectMimeType(mediaPath) });
 
 		try {
-			const entry = await stores.supabaseMediaStore.uploadMedia(file, bucket, post.id);
+			// Upload with the post ID so media entries are linked
+			const entry = await stores.supabaseMediaStore.uploadMedia(file, bucket, supabasePostWithId.id);
 			pathToUrl.set(mediaPath, entry.public_url);
 			mediaCount++;
 		} catch (e: any) {
@@ -102,37 +128,28 @@ const migratePostToSupabase = async (slug: string): Promise<{ success: boolean; 
 		}
 	}
 
-	// 4. Replace all media URLs in the post content from git paths to Supabase URLs
-	let newContent = post.content;
+	// 5. Replace all media URLs in the post content from git paths to Supabase URLs
+	let newContent = supabasePostWithId.content;
 	for (const [oldPath, newUrl] of pathToUrl) {
 		// The oldPath is like /media/images/filename.png
 		// Replace it everywhere it appears in the content
 		newContent = newContent.replaceAll(oldPath, newUrl);
 	}
 
-	// 4b. Replace Supabase public Storage URLs with signed URLs
+	// 5b. Replace Supabase public Storage URLs with signed URLs
 	newContent = await replaceSupabaseUrls(newContent);
 
-	// 5. Save the post to Supabase
-	const supabasePost: Omit<Post, 'date' | 'published'> = {
-		title: post.title,
-		slug: post.slug,
-		description: post.description,
-		content: newContent,
-		author: post.author,
-		tags: post.tags,
-	};
-
+	// 6. Update the post with the modified content
 	try {
-		await stores.supabasePostStore.savePost(supabasePost);
+		await stores.supabasePostStore.updatePost(supabasePostWithId.slug, { content: newContent });
 	} catch (e: any) {
-		errors.push(`Failed to save post to Supabase: ${e.message}`);
-		logger.error('migratePost', 'save failed', { slug, error: e.message });
+		errors.push(`Failed to update post with media URLs: ${e.message}`);
+		logger.error('migratePost', 'update failed', { slug, error: e.message });
 	}
 
 	return {
-		success: errors.length === 0 || errors.some((e) => e.includes('save post')),
-		postSlug: slug,
+		success: errors.length === 0,
+		postSlug: supabasePostWithId.slug,
 		mediaCount,
 		errors,
 	};
