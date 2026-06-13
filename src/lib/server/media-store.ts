@@ -15,8 +15,6 @@ export interface MediaEntry {
 	mime_type: string;
 	/** File size in bytes */
 	size: number;
-	/** Post ID this entry is linked to, or null if unlinked */
-	post_id: string | null;
 	/** Public/download URL for this entry (resolved by the implementation) */
 	public_url: string;
 }
@@ -38,20 +36,12 @@ export interface MediaStore {
 	 * Upload a file to the media store.
 	 * Handles any necessary post-save side effects internally.
 	 */
-	uploadMedia(file: File, bucket: 'images' | 'audio' | 'fonts', postId?: string): Promise<MediaEntry>;
+	uploadMedia(file: File, bucket: 'images' | 'audio' | 'fonts'): Promise<MediaEntry>;
 
 	/**
 	 * Delete a media entry by its MediaEntry reference.
 	 */
 	deleteMedia(entry: MediaEntry): Promise<void>;
-
-	/**
-	 * Delete all media entries associated with a specific post ID.
-	 * This is used when deleting a blog post to clean up orphaned media references.
-	 * The actual media content in storage should NOT be deleted (shared media).
-	 * Only the database rows with matching post_id should be removed.
-	 */
-	deleteMediaByPostId(postId: string): Promise<void>;
 }
 
 import { SupabaseMediaStore } from './supabase-media-store.js';
