@@ -12,7 +12,6 @@ const mockMediaRows: MediaEntry[] = [
 		filename: 'logo.png',
 		mime_type: 'image/png',
 		size: 102400,
-		post_id: null,
 		public_url: 'https://example.supabase.co/storage/v1/object/public/images/logo.png',
 	},
 	{
@@ -22,7 +21,6 @@ const mockMediaRows: MediaEntry[] = [
 		filename: 'banner.webp',
 		mime_type: 'image/webp',
 		size: 204800,
-		post_id: 'post-123',
 		public_url: 'https://example.supabase.co/storage/v1/object/public/images/banner.webp',
 	},
 	{
@@ -32,7 +30,6 @@ const mockMediaRows: MediaEntry[] = [
 		filename: 'podcast-ep1.mp3',
 		mime_type: 'audio/mpeg',
 		size: 5242880,
-		post_id: null,
 		public_url: 'https://example.supabase.co/storage/v1/object/public/audio/podcast-ep1.mp3',
 	},
 ];
@@ -103,7 +100,6 @@ function buildMockClient(rows: MediaEntry[]) {
 						filename: (record.filename as string) ?? 'unknown',
 						mime_type: (record.mime_type as string) ?? 'application/octet-stream',
 						size: (record.size as number) ?? 0,
-						post_id: (record.post_id as string | null) ?? null,
 						uploaded_at: new Date().toISOString(),
 					};
 					rows.push(newRow as unknown as MediaEntry);
@@ -241,12 +237,6 @@ describe('SupabaseMediaStore', () => {
 			await expect(store.uploadMedia(testFile as any, 'videos' as any)).rejects.toThrow('Unsupported bucket');
 		});
 
-		test('links entry to a post_id when provided', async () => {
-			const store = new SupabaseMediaStore(mockClient);
-			const testFile = new File(['data'], 'linked.png', { type: 'image/png' });
-			const result = await store.uploadMedia(testFile, 'images', 'post-456');
-			expect(result.post_id).toBe('post-456');
-		});
 
 		test('propagates Supabase Storage upload errors', async () => {
 			const errClient = buildMockClient([...mockMediaRows]);

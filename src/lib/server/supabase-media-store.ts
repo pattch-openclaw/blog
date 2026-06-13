@@ -14,7 +14,6 @@ interface MediaEntryRow {
 	filename: string;
 	mime_type: string;
 	size: number;
-	post_id: string | null;
 	uploaded_at: string;
 }
 
@@ -206,7 +205,7 @@ export class SupabaseMediaStore implements MediaStore {
 
 		const { data, error } = await this.db
 			.from(this.mediaTable)
-			.select('id, bucket, path, filename, mime_type, size, post_id, uploaded_at')
+			.select('id, bucket, path, filename, mime_type, size, uploaded_at')
 			.order('uploaded_at', { ascending: false });
 
 		if (error) {
@@ -227,7 +226,7 @@ export class SupabaseMediaStore implements MediaStore {
 			filename: row.filename,
 			mime_type: row.mime_type,
 			size: row.size,
-			post_id: row.post_id,
+			
 			public_url: this.buildPublicUrl(row.path),
 		}));
 
@@ -241,7 +240,6 @@ export class SupabaseMediaStore implements MediaStore {
 	async uploadMedia(
 		file: File,
 		bucket: 'images' | 'audio' | 'fonts',
-		postId?: string,
 	): Promise<MediaEntry> {
 		this.validateBucket(bucket);
 
@@ -277,7 +275,6 @@ export class SupabaseMediaStore implements MediaStore {
 				filename: safeFilename,
 				mime_type: mimeType,
 				size: file.size,
-				post_id: postId || null,
 			})
 			.select();
 
@@ -302,7 +299,7 @@ export class SupabaseMediaStore implements MediaStore {
 			filename: insertedRow.filename,
 			mime_type: insertedRow.mime_type,
 			size: insertedRow.size,
-			post_id: insertedRow.post_id,
+			
 			public_url: this.buildPublicUrl(insertedRow.path),
 		};
 	}
@@ -341,27 +338,5 @@ export class SupabaseMediaStore implements MediaStore {
 		}
 
 		logger.agent('supabase.deleteMedia', 'info', `Deleted media entry: ${entry.filename} (id: ${entry.id})`);
-	}
-
-	/**
-	 * Delete all media entries associated with a specific post ID.
-	 * Also deletes the actual media files from storage.
-	 */
-	async deleteMediaByPostId(postId: string): Promise<void> {
-		logger.agent('supabase.deleteMediaByPostId', 'info', `Deleting media entries for post: ${postId}`);
-
-	// Use as any to bypass the narrow interface which doesn't have delete() after eq()
-		const { error } = await (this.db as any)
-			.from(this.mediaTable)
-			.update({ post_id: null })
-			.eq('post_id', postId);
-
-		if (error) {
-			const msg = `Failed to clear media entries for post ${postId}: ${error.message}`;
-			logger.agent('supabase.deleteMediaByPostId', 'error', msg);
-			throw new Error(msg);
-		}
-
-		logger.agent('supabase.deleteMediaByPostId', 'info', `Cleared media entries for post: ${postId}`);
 	}
 }

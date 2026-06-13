@@ -89,7 +89,6 @@ export class FileSystemMediaStore implements MediaStore {
 					filename: file,
 					mime_type: this.detectMimeType(file),
 					size: fileStat.size,
-					post_id: null,
 					public_url: this.buildPublicUrl(bucket, file),
 				});
 			}
@@ -103,7 +102,6 @@ export class FileSystemMediaStore implements MediaStore {
 	async uploadMedia(
 		file: File,
 		bucket: 'images' | 'audio' | 'fonts',
-		postId?: string,
 	): Promise<MediaEntry> {
 		// Sanitize filename
 		const safeFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
@@ -147,7 +145,6 @@ export class FileSystemMediaStore implements MediaStore {
 			filename: safeFilename,
 			mime_type: mimeType,
 			size: file.size,
-			post_id: postId || null,
 			public_url: this.buildPublicUrl(bucket, safeFilename),
 		};
 	}
@@ -182,11 +179,5 @@ export class FileSystemMediaStore implements MediaStore {
 		}
 
 		await execAsync('git push --no-verify origin main');
-	}
-
-	async deleteMediaByPostId(postId: string): Promise<void> {
-		// For git mode, media is not linked to posts in a database,
-		// so this is a no-op. The filesystem just stores all media files.
-		logger.agent('FileSystemMediaStore.deleteMediaByPostId', 'info', 'No-op for git mode (no database linkage)');
 	}
 }
