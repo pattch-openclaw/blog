@@ -241,6 +241,20 @@ export class SupabasePostStore implements PostStore {
 	async deletePost(slug: string): Promise<void> {
 		logger.agent('supabase.deletePost', 'info', `Deleting post: ${slug}`);
 
+		// First, list all media entries to see what's in the database
+		logger.agent('supabase.deletePost', 'info', 'Checking current media entries:');
+		const mediaStore = getMediaStore();
+		if (mediaStore instanceof SupabaseMediaStore) {
+			try {
+				const allEntries = await mediaStore.listMedia();
+				for (const entry of allEntries) {
+					logger.agent('supabase.deletePost', 'info', `Media entry: id=${entry.id}, filename=${entry.filename}, bucket=${entry.bucket}, post_id=${entry.post_id}`);
+				}
+			} catch (e: any) {
+				logger.agent('supabase.deletePost', 'warn', `Failed to list media entries: ${e.message}`);
+			}
+		}
+
 		// Get the post first to extract its ID
 		const post = await this.getPost(slug);
 		if (!post) {
@@ -252,7 +266,6 @@ export class SupabasePostStore implements PostStore {
 		logger.agent('supabase.deletePost', 'info', `Post slug: ${post.slug}, title: ${post.title}`);
 
 		// Clear media entries associated with this post (if using Supabase)
-		const mediaStore = getMediaStore();
 		logger.agent('supabase.deletePost', 'info', `Media store type: ${mediaStore.constructor.name}`);
 		if (mediaStore instanceof SupabaseMediaStore) {
 			logger.agent('supabase.deletePost', 'info', `Clearing media entries for post ID: ${post.id}`);
