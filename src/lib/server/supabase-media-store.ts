@@ -226,7 +226,6 @@ export class SupabaseMediaStore implements MediaStore {
 			filename: row.filename,
 			mime_type: row.mime_type,
 			size: row.size,
-			
 			public_url: this.buildPublicUrl(row.path),
 		}));
 
@@ -299,7 +298,6 @@ export class SupabaseMediaStore implements MediaStore {
 			filename: insertedRow.filename,
 			mime_type: insertedRow.mime_type,
 			size: insertedRow.size,
-			
 			public_url: this.buildPublicUrl(insertedRow.path),
 		};
 	}
