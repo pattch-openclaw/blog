@@ -345,62 +345,54 @@ export class SupabaseMediaStore implements MediaStore {
 
 	/**
 	 * Delete all media entries associated with a specific post ID.
-	 * Does NOT delete the actual media files from storage (may be shared across posts).
-	 * Only clears the post_id linkage in the database.
+	 * Also deletes the actual media files from storage.
 	 */
 	async deleteMediaByPostId(postId: string): Promise<void> {
-		logger.agent('supabase.deleteMediaByPostId', 'info', `Clearing media entries for post: ${postId}`);
+		logger.agent('supabase.deleteMediaByPostId', 'info', `Deleting media entries for post: ${postId}`);
 
-		// List all entries to see what's in the database
-		const { data: allEntries, error: allError } = await this.db
-			.from(this.mediaTable)
-			.select('id, post_id, filename, bucket');
-
-		if (allError) {
-			logger.agent('supabase.deleteMediaByPostId', 'warn', `Failed to list all entries: ${allError.message}`);
-		} else if (allEntries) {
-			for (const entry of allEntries) {
-				logger.agent('supabase.deleteMediaByPostId', 'info', `DB entry: id=${entry.id}, filename=${entry.filename}, bucket=${entry.bucket}, post_id=${entry.post_id}`);
-			}
-		}
-
-		// First, check how many entries match
+		// First, get all entries to delete
 		const { data: matchingEntries, error: checkError } = await this.db
 			.from(this.mediaTable)
-			.select('id, post_id, filename, bucket')
+			.select('id, post_id, filename, bucket, path')
 			.eq('post_id', postId);
 
 		if (checkError) {
-			logger.agent('supabase.deleteMediaByPostId', 'warn', `Failed to check matching entries: ${checkError.message}`);
-		}
-
-		if (matchingEntries) {
-			for (const entry of matchingEntries) {
-				logger.agent('supabase.deleteMediaByPostId', 'info', `Found matching entry: id=${entry.id}, filename=${entry.filename}, bucket=${entry.bucket}, post_id=${entry.post_id}`);
-			}
-		}
-
-		logger.agent('supabase.deleteMediaByPostId', 'info', `Found ${matchingEntries ? matchingEntries.length : 0} matching entries`);
-
-		const { error } = await this.db
-			.from(this.mediaTable)
-			.update({ post_id: null })
-			.eq('post_id', postId);
-
-		if (error) {
-			const msg = `Failed to clear media entries for post ${postId}: ${error.message}`;
+			const msg = `Failed to check matching entries: ${checkError.message}`;
 			logger.agent('supabase.deleteMediaByPostId', 'error', msg);
 			throw new Error(msg);
 		}
 
-		logger.agent('supabase.deleteMediaByPostId', 'info', `Cleared media entries for post: ${postId}`);
+		if (!matchingEntries || matchingEntries.length === 0) {
+			logger.agent('supabase.deleteMediaByPostId', 'info', 'No media entries found for post');
+			return;
+		}
 
-		// Verify the update worked
-		const { data: remainingEntries } = await this.db
+		for (const entry of matchingEntries) {
+			logger.agent('supabase.deleteMediaByPostId', 'info', `Deleting entry: id=${entry.id}, filename=${entry.filename}, bucket=${entry.bucket}`);
+
+			// Delete from Supabase Storage
+			const bucket = entry.bucket as 'images' | 'audio' | 'fonts';
+			const { error: storageError } = await this.storage
+				.from(bucket)
+				.remove([entry.path]);
+
+			if (storageError) {
+				logger.agent('supabase.deleteMediaByPostId', 'warn', `Storage delete error: ${storageError.message}`);
+			}
+		}
+
+		// Delete the rows from media_entries
+		const { error } = await this.db
 			.from(this.mediaTable)
-			.select('id')
+			.delete()
 			.eq('post_id', postId);
 
-		logger.agent('supabase.deleteMediaByPostId', 'info', `Remaining entries with post_id=${postId}: ${remainingEntries ? remainingEntries.length : 0}`);
+		if (error) {
+			const msg = `Failed to delete media entries for post ${postId}: ${error.message}`;
+			logger.agent('supabase.deleteMediaByPostId', 'error', msg);
+			throw new Error(msg);
+		}
+
+		logger.agent('supabase.deleteMediaByPostId', 'info', `Deleted ${matchingEntries.length} media entries for post: ${postId}`);
 	}
 }
