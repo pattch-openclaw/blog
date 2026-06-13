@@ -354,11 +354,17 @@ export class SupabaseMediaStore implements MediaStore {
 		// First, check how many entries match
 		const { data: matchingEntries, error: checkError } = await this.db
 			.from(this.mediaTable)
-			.select('id, post_id')
+			.select('id, post_id, filename, bucket')
 			.eq('post_id', postId);
 
 		if (checkError) {
 			logger.agent('supabase.deleteMediaByPostId', 'warn', `Failed to check matching entries: ${checkError.message}`);
+		}
+
+		if (matchingEntries) {
+			for (const entry of matchingEntries) {
+				logger.agent('supabase.deleteMediaByPostId', 'info', `Found matching entry: id=${entry.id}, filename=${entry.filename}, bucket=${entry.bucket}, post_id=${entry.post_id}`);
+			}
 		}
 
 		logger.agent('supabase.deleteMediaByPostId', 'info', `Found ${matchingEntries ? matchingEntries.length : 0} matching entries`);

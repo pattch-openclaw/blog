@@ -249,6 +249,7 @@ export class SupabasePostStore implements PostStore {
 		}
 
 		logger.agent('supabase.deletePost', 'info', `Post ID: ${post.id} (type: ${typeof post.id})`);
+		logger.agent('supabase.deletePost', 'info', `Post slug: ${post.slug}, title: ${post.title}`);
 
 		// Clear media entries associated with this post (if using Supabase)
 		const mediaStore = getMediaStore();
