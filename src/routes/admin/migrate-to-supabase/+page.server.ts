@@ -93,7 +93,7 @@ const migratePostToSupabase = async (slug: string): Promise<{ success: boolean; 
 		const file = new File([buffer], path.basename(mediaPath), { type: detectMimeType(mediaPath) });
 
 		try {
-			const entry = await stores.supabaseMediaStore.uploadMedia(file, bucket);
+			const entry = await stores.supabaseMediaStore.uploadMedia(file, bucket, post.id);
 			pathToUrl.set(mediaPath, entry.public_url);
 			mediaCount++;
 		} catch (e: any) {
