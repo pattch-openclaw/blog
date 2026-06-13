@@ -237,7 +237,6 @@ describe('SupabaseMediaStore', () => {
 			await expect(store.uploadMedia(testFile as any, 'videos' as any)).rejects.toThrow('Unsupported bucket');
 		});
 
-
 		test('propagates Supabase Storage upload errors', async () => {
 			const errClient = buildMockClient([...mockMediaRows]);
 			errClient.setUploadError(new Error('Upload failed'));

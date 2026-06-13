@@ -34,13 +34,12 @@ export interface MediaEntry {
   filename: string;
   mime_type: string;
   size: number;
-  post_id: string | null;  // linked post UUID (nullable)
   public_url: string;      // resolved public/download URL
 }
 
 export interface MediaStore {
   listMedia(): Promise<MediaEntry[]>;
-  uploadMedia(file: File, bucket: 'images' | 'audio' | 'fonts', postId?: string): Promise<MediaEntry>;
+  uploadMedia(file: File, bucket: 'images' | 'audio' | 'fonts'): Promise<MediaEntry>;
   deleteMedia(entry: MediaEntry): Promise<void>;
 }
 ```
@@ -54,7 +53,7 @@ export interface MediaStore {
 Ported the existing `/admin/media/+page.server.ts` filesystem logic into the new abstraction in `src/lib/server/file-media-store.ts`:
 
 - **`listMedia()`**: Read from `media/images/`, `media/audio/`, `media/fonts/` directories, return `MediaEntry[]` with paths like `/media/images/filename`
-- **`uploadMedia(file, bucket, postId?)`**: Write to local `media/<bucket>/`, `git add`, `git commit --no-verify`, `git push --no-verify origin main`
+- **`uploadMedia(file, bucket)`**: Write to local `media/<bucket>/`, `git add`, `git commit --no-verify`, `git push --no-verify origin main`
 - **`deleteMedia(entry)`**: `fs.unlink` + `git rm --cached`, commit + push
 
 This preserves current behavior for `CONTENT_STORE=git` mode.
@@ -64,9 +63,9 @@ This preserves current behavior for `CONTENT_STORE=git` mode.
 Implemented Supabase-specific logic in `src/lib/server/supabase-media-store.ts`:
 
 - **`listMedia()`**: Query `media_entries` Postgres table, fetch file metadata from `supabase.storage.from(bucket).list()`
-- **`uploadMedia(file, bucket, postId?)`**: 
+- **`uploadMedia(file, bucket)`**: 
   - Use `supabase.storage.from(bucket).upload(path, file, { upsert: true })`
-  - Insert row into `media_entries` table with bucket, path, filename, mime_type, size, post_id
+  - Insert row into `media_entries` table with bucket, path, filename, mime_type, size
 - **`deleteMedia(entry)`**: 
   - Delete from `supabase.storage.from(entry.bucket).remove([entry.path])`
   - Delete row from `media_entries` table
@@ -78,7 +77,7 @@ https://<SUPABASE_PROJECT>.supabase.co/storage/v1/object/public/images/<filename
 
 ### Step 4: Wire Media Selection into Existing Code ✅ COMPLETED
 
-#### 4a: Media store selection ✅ COMPLETED
+#### 4a: Media store selector ✅ COMPLETED
 
 Add a media store selector in `src/lib/server/media-store.ts`:
 
@@ -94,12 +93,12 @@ export function getMediaStore(): MediaStore {
 
 Replace direct `fs` operations with `MediaStore` calls:
 - `load()`: call `getMediaStore().listMedia()` instead of `fs.readdir`
-- `upload` action: call `getMediaStore().uploadMedia(file, type, undefined)`
+- `upload` action: call `getMediaStore().uploadMedia(file, type)`
 - `delete` action: call `getMediaStore().deleteMedia(entry)`
 
 **Changes made (2026-06-11):**
 - Rewrote `load()` to use `MediaStore.listMedia()` and group results by bucket
-- Updated `upload` action to use `MediaStore.uploadMedia()` (no postId = unlinked media)
+- Updated `upload` action to use `MediaStore.uploadMedia()`
 - Updated `delete` action to use `MediaStore.deleteMedia()` with entry ID lookup
 - Removed filesystem-specific git operations (`git add/commit/push` now handled by store)
 
@@ -148,7 +147,7 @@ Create a migration script (e.g., `scripts/migrate-media.ts`) that:
 - ✅ `media.ts` filesystem utility removed (verified)
 - ✅ `fs`-based media logic removed from routes (replaced by MediaStore abstraction)
 - ✅ `README.md` updated to reflect completed media migration
-- ✅ “Media integration” removed from pending items in README
+- ✅ "Media integration" removed from pending items in README
 
 ---
 
@@ -194,3 +193,27 @@ Create a migration script (e.g., `scripts/migrate-media.ts`) that:
 - E2E: verify image picker on `/admin/write` shows Supabase images
 - E2E: verify published post images render from Supabase URLs
 - Verify screenshot diffs still pass with media integration
+
+---
+
+## Database Schema
+
+### Table `media_entries`
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary Key |
+| `bucket` | `text` | Not Null |
+| `path` | `text` | Not Null |
+| `filename` | `text` | Not Null |
+| `mime_type` | `text` | Nullable |
+| `size` | `int8` | Nullable |
+| `uploaded_at` | `timestamptz` | Nullable |
+
+**Unique Constraint:** `(bucket, path)` uniquely identifies a storage object
+
+**Notes:**
+- `path` format: `bucket/filename` (e.g., `images/my-photo.png`)
+- `filename` is stored separately for query convenience but is derivable from `path`
+- No `post_id` column — media is not linked to specific blog posts
+- When deleting a blog post, media entries remain (images can be reused across posts)
