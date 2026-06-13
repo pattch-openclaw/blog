@@ -351,6 +351,18 @@ export class SupabaseMediaStore implements MediaStore {
 	async deleteMediaByPostId(postId: string): Promise<void> {
 		logger.agent('supabase.deleteMediaByPostId', 'info', `Clearing media entries for post: ${postId}`);
 
+		// First, check how many entries match
+		const { data: matchingEntries, error: checkError } = await this.db
+			.from(this.mediaTable)
+			.select('id, post_id')
+			.eq('post_id', postId);
+
+		if (checkError) {
+			logger.agent('supabase.deleteMediaByPostId', 'warn', `Failed to check matching entries: ${checkError.message}`);
+		}
+
+		logger.agent('supabase.deleteMediaByPostId', 'info', `Found ${matchingEntries ? matchingEntries.length : 0} matching entries`);
+
 		const { error } = await this.db
 			.from(this.mediaTable)
 			.update({ post_id: null })
@@ -363,5 +375,13 @@ export class SupabaseMediaStore implements MediaStore {
 		}
 
 		logger.agent('supabase.deleteMediaByPostId', 'info', `Cleared media entries for post: ${postId}`);
+
+		// Verify the update worked
+		const { data: remainingEntries } = await this.db
+			.from(this.mediaTable)
+			.select('id')
+			.eq('post_id', postId);
+
+		logger.agent('supabase.deleteMediaByPostId', 'info', `Remaining entries with post_id=${postId}: ${remainingEntries ? remainingEntries.length : 0}`);
 	}
 }
