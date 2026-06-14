@@ -97,7 +97,7 @@ export class SupabasePostStore implements PostStore {
 			description: row.description ?? '',
 			date: row.created_at ?? new Date().toISOString().split('T')[0],
 			published: row.published ?? false,
-			author: row.author ?? 'sam',
+			author: (row.author ?? 'sam').trim() || 'sam',
 			tags: row.tags ?? [],
 			content: row.content ?? '',
 		};
@@ -123,7 +123,7 @@ export class SupabasePostStore implements PostStore {
 		// Log each row to confirm column shapes
 		if (data) {
 			for (const row of data as SupabasePostRow[]) {
-				logger.agent('supabase.listPosts', 'info', `Row: id=${row.id}, slug=${row.slug}, published=${row.published}`, { row });
+				logger.agent('supabase.listPosts', 'info', `Row: id=${row.id}, slug=${row.slug}, published=${row.published}, author="${row.author}"`, { row });
 			}
 		}
 		

@@ -20,15 +20,35 @@ const mockDbRows: Post[] = [
 		description: 'The second post.',
 		date: '2026-05-30T00:00:00Z',
 		published: true,
-		author: 'sam',
+		author: 'ai',
 		tags: ['sveltekit'],
 		content: '## Second Post\n\nAnother post.',
+	},
+	{
+		title: 'Third Post (null author)',
+		slug: 'third-post',
+		description: 'A post with null author.',
+		date: '2026-05-28T00:00:00Z',
+		published: true,
+		author: null as any,
+		tags: [],
+		content: '## Third Post\n\nNull author should default to sam.',
+	},
+	{
+		title: 'Fourth Post (empty author)',
+		slug: 'fourth-post',
+		description: 'A post with empty author.',
+		date: '2026-05-27T00:00:00Z',
+		published: true,
+		author: '' as any,
+		tags: [],
+		content: '## Fourth Post\n\nEmpty author should default to sam.',
 	},
 	{
 		title: 'Draft Post',
 		slug: 'draft-post',
 		description: 'A draft.',
-		date: '2026-05-28T00:00:00Z',
+		date: '2026-05-26T00:00:00Z',
 		published: false,
 		author: 'sam',
 		tags: [],
@@ -178,10 +198,12 @@ describe('SupabasePostStore', () => {
 	describe('listPosts', () => {
 		test('returns all posts sorted by date descending', async () => {
 			const posts = await store.listPosts();
-			expect(posts).toHaveLength(3);
+			expect(posts).toHaveLength(5);
 			expect(posts[0].title).toBe('First Post');
 			expect(posts[1].title).toBe('Second Post');
-			expect(posts[2].title).toBe('Draft Post');
+			expect(posts[2].title).toBe('Third Post (null author)');
+			expect(posts[3].title).toBe('Fourth Post (empty author)');
+			expect(posts[4].title).toBe('Draft Post');
 		});
 
 		test('returns posts with correct metadata', async () => {
@@ -189,8 +211,9 @@ describe('SupabasePostStore', () => {
 			expect(posts[0].slug).toBe('first-post');
 			expect(posts[0].published).toBe(true);
 			expect(posts[0].tags).toContain('test');
-			expect(posts[2].published).toBe(false);
-			expect(posts[2].tags).toEqual([]);
+			// Draft is now at index 4
+			expect(posts[4].published).toBe(false);
+			expect(posts[4].tags).toEqual([]);
 		});
 	});
 
@@ -250,6 +273,29 @@ describe('SupabasePostStore', () => {
 				tags: [],
 			});
 			expect(newPost.tags).toEqual([]);
+		});
+	});
+
+	describe('author handling', () => {
+		test('defaults null author to sam', async () => {
+			const posts = await store.listPosts();
+			const nullAuthorPost = posts.find(p => p.slug === 'third-post');
+			expect(nullAuthorPost).not.toBeNull();
+			expect(nullAuthorPost?.author).toBe('sam');
+		});
+
+		test('defaults empty string author to sam', async () => {
+			const posts = await store.listPosts();
+			const emptyAuthorPost = posts.find(p => p.slug === 'fourth-post');
+			expect(emptyAuthorPost).not.toBeNull();
+			expect(emptyAuthorPost?.author).toBe('sam');
+		});
+
+		test('preserves non-null author values like ai', async () => {
+			const posts = await store.listPosts();
+			const aiPost = posts.find(p => p.slug === 'second-post');
+			expect(aiPost).not.toBeNull();
+			expect(aiPost?.author).toBe('ai');
 		});
 	});
 

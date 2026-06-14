@@ -11,12 +11,11 @@
 		activeTag = url?.searchParams.get('tag') || '';
 	});
 
-	// Compute unique authors from published posts (non-staging) or all posts (staging)
+	// Compute unique authors from all posts (API already handles draft filtering)
 	const authors = $derived(
 		Array.from(
 			new Set(
 				data.posts
-					.filter((p: typeof data.posts[number]) => p.published || !import.meta.env.PROD)
 					.map((p: typeof data.posts[number]) => p.author)
 					.filter(Boolean)
 			)
