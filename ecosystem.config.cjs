@@ -64,10 +64,10 @@ module.exports = {
       script: './build/index.js',
       instances: 1,
       autorestart: true,
-      watch: false,
+      watch: true,
       max_memory_restart: '1G',
       env: {
-        NODE_ENV: 'production',
+        NODE_ENV: 'development',
         PORT: 3002,
         SHOW_DRAFTS: 'true',
         CONTENT_STORE: 'supabase',
