@@ -261,6 +261,7 @@ posts:
   content (text) — raw markdown
   tags (text[]) — JSON array of tag strings
   published (boolean, default false)
+  author (text, default 'sam') — canonical values: 'sam' or 'ai'
   created_at (timestamptz)
   updated_at (timestamptz)
 
