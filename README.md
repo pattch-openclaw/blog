@@ -78,20 +78,19 @@ pm2 save
 pm2 startup # Follow the instructions it outputs to run PM2 on boot
 ```
 
-The ecosystem config uses **dotenv** to load `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_KEY` from the `.blog-secrets` file on the host at startup. No manual env sourcing is needed. All three environments pick up the credentials automatically.
+### Manual Service Restoration After Power Cycle
 
-All three environments have access to **both** the Supabase service key (used for admin write operations) and anon key (used for public read operations). The service key bypasses RLS entirely on the Supabase side; the anon key is used for unauthenticated reads.
+To manually restore all services after a power cycle or server restart:
 
-⚠️ **Secrets file format:** The `.blog-secrets` file must use plain `KEY=***` lines (one per line). Do **not** use `export KEY=***` — the parser splits on the first `=` and takes everything after it as the value, so the `export` prefix would become part of the key and silently break credential loading. Comments starting with `#` are supported and ignored. Blank lines are also ignored.
+```bash
+# Restore PM2 processes from saved state
+pm2 resurrect
 
-Example format:
+# Start the GitHub Actions self-hosted runner
+./svc.sh start
 ```
-SUPABASE_URL=https://abc123.supabase.co
-SUPABASE_ANON_KEY=eyJhbG…9...
-SUPABASE_SERVICE_KEY=eyJhbG…xyz...
-```
 
-The **service key** is used internally for admin write operations (create, update, delete posts). It bypasses RLS entirely on the Supabase side, so you don't need RLS policies for writes.— only for read filtering if desired. The **anon key** is used for public read operations (listing posts, fetching post content).
+The `pm2 resurrect` command restores all three blog instances (`sams-blog-prod`, `sams-blog-staging`, `sams-blog-sandbox`) from the saved state. Verify with `pm2 status`.
 
 To update secrets after changing `.blog-secrets`:
 ```bash
