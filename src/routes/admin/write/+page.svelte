@@ -267,7 +267,7 @@
 
 				<div class="form-actions">
 					<button type="submit" class="btn-primary" disabled={pending}>
-						{pending ? (isSupabase ? 'Saving...' : 'Saving & Pushing...') : 'Save Draft'}
+						{pending ? 'Saving...' : 'Save Draft'}
 					</button>
 				</div>
 			</form>
