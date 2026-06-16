@@ -33,20 +33,11 @@
 	let isPreview = $state(false);
 	let parsedContent = $derived(marked.parse(content));
 
-	let selectedImage = $state('');
+	// Track selected image object instead of just filename
+	let selectedImageEntry = $state<{ filename: string; public_url: string } | null>(null);
 
-// Get the full image URL based on storage backend
-function getImageUrl(filename: string): string {
-	if (isSupabase) {
-		// For Supabase, use the Supabase storage URL pattern
-		const supabaseUrl = process.env.SUPABASE_URL || 'https://supabase.io';
-		return `${supabaseUrl}/storage/v1/object/public/images/${filename}`;
-	}
-	return `/media/images/${filename}`;
-}
-
-let imageMarkdown = $derived(selectedImage ? `![${selectedImage}](${getImageUrl(selectedImage)})` : '');
-let imagePreviewUrl = $derived(selectedImage ? getImageUrl(selectedImage) : '');
+	let imageMarkdown = $derived(selectedImageEntry ? `![${selectedImageEntry.filename}](${selectedImageEntry.public_url})` : '');
+	let imagePreviewUrl = $derived(selectedImageEntry ? selectedImageEntry.public_url : '');
 
 	// Author state
 	const AUTHORS = [
@@ -71,6 +62,7 @@ let imagePreviewUrl = $derived(selectedImage ? getImageUrl(selectedImage) : '');
 	let pending = $state(false);
 	let isSuccess = $state(false);
 	let successSlug = $state('');
+	let isSupabase = $state(false);
 
 	const handleEnhance = () => {
 		pending = true;
@@ -220,14 +212,14 @@ let imagePreviewUrl = $derived(selectedImage ? getImageUrl(selectedImage) : '');
 					<div class="form-group image-picker-group">
 						<label for="image-picker">Insert Image</label>
 						<div class="image-picker-controls">
-							<select id="image-picker" bind:value={selectedImage}>
+							<select id="image-picker" bind:value={selectedImageEntry} >
 								<option value="">-- Select an image to insert --</option>
 								{#each data.images as img}
-									<option value={img}>{img}</option>
+									<option value={img}>{img.filename}</option>
 								{/each}
 							</select>
 							
-							{#if selectedImage}
+							{#if selectedImageEntry}
 								<div class="copy-wrapper">
 									<input 
 										type="text" 
@@ -250,9 +242,9 @@ let imagePreviewUrl = $derived(selectedImage ? getImageUrl(selectedImage) : '');
 								</div>
 							{/if}
 						</div>
-						{#if selectedImage}
+						{#if selectedImageEntry}
 							<div class="image-preview-container">
-								<button type="button" class="btn-close" onclick={() => selectedImage = ''} title="Close preview">
+								<button type="button" class="btn-close" onclick={() => selectedImageEntry = null} title="Close preview">
 									<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
 								</button>
 								<img src={imagePreviewUrl} alt="Preview" class="image-preview-img" />
@@ -275,7 +267,7 @@ let imagePreviewUrl = $derived(selectedImage ? getImageUrl(selectedImage) : '');
 
 				<div class="form-actions">
 					<button type="submit" class="btn-primary" disabled={pending}>
-						{pending ? 'Saving & Pushing...' : 'Save Draft'}
+						{pending ? (isSupabase ? 'Saving...' : 'Saving & Pushing...') : 'Save Draft'}
 					</button>
 				</div>
 			</form>

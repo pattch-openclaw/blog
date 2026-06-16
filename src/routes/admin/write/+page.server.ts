@@ -6,14 +6,14 @@ export const load = async ({ url }) => {
 	const slug = url.searchParams.get('slug');
 
 	// Get images from MediaStore (works for both git and supabase)
-	let images: string[] = [];
+	let images: Array<{ filename: string; public_url: string }> = [];
 	try {
 		const mediaStore = getMediaStore();
 		const mediaEntries = await mediaStore.listMedia();
 		images = mediaEntries
 			.filter(e => e.bucket === 'images')
-			.map(e => e.filename)
-			.sort();
+			.map(e => ({ filename: e.filename, public_url: e.public_url }))
+			.sort((a, b) => a.filename.localeCompare(b.filename));
 	} catch (e) {
 		logger.error('Failed to load images for picker', e);
 	}
