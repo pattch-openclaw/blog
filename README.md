@@ -152,12 +152,9 @@ tags:                 # YAML array or comma-separated, empty if missing
 - ✅ Blog listing (`/blog`): tag cloud with counts, clickable tag pills for filtering (`/blog?tag=xxx`), author badge on each post card
 - ✅ Tag detail route (`/blog/tag/[tag]`): shows only posts with that tag
 - ✅ Existing posts parse without `author`/`tags` (default to `"sam"` / `[]`)
-
-**Next steps (pending):**
-- Supabase `SupabasePostStore` handles `author`/`tags` — ready when Phase 2 resumes
+- ✅ Supabase `SupabasePostStore` handles `author`/`tags` — implemented and verified
 
 ## Long-Term Goals (prioritized as we go)
-- **Decouple blog content from server source code** — migrating content from git-based flat files → Supabase (with git-history fallback), then Supabase only (see migration plan below)
 - **Rich markdown editor with live preview** — replace the raw textarea with a proper editor (e.g., TipTap, Monaco-based)
 - **Syntax highlighting on code blocks** — add Prism.js or similar to published posts
 - **Comment system integration** — disqus, giscus, or a self-hosted alternative
@@ -168,110 +165,21 @@ tags:                 # YAML array or comma-separated, empty if missing
 
 ## Architecture Notes
 
-### Decoupling Blog Content from Server Source Code
+### Current Architecture
 
-**Current problem:** Blog posts live in `src/routes/blog/<slug>/+page.md` alongside the server codebase. Editing content or media requires git commits, CI/CD pipeline runs, and server rebuilds. This makes content editing unnecessarily slow and tightly couples the CMS layer to the web framework.
+**Blog posts and media:** Stored in Supabase Postgres (`posts` table with markdown content, `media_entries` table for media metadata). Media files stored in Supabase Storage buckets (`images`, `audio`, `fonts`).
 
-**High-level strategies to decouple:**
+**Runtime behavior:** The blog reads from Supabase when `CONTENT_STORE=supabase` (sandbox environment), or falls back to git-based content when `CONTENT_STORE=git` (production/staging environments).
 
-1. **Flat-file CMS (separate content repo or directory)**
-   - Move `src/routes/blog/` content out of the server codebase entirely into a dedicated content directory or even a separate repo.
-   - Server reads markdown from a configured content path at runtime instead of from its own source tree.
-   - **Pros:** Clean separation, content can be managed independently, no server rebuilds needed.
-   - **Cons:** Still git-dependent for content sync. Still uses `git push` for content changes. The CI/CD pipeline would only trigger on server code changes.
-   - **Fit:** Moderate effort. Would require refactoring how `posts.ts` resolves file paths, and updating `+page.server.ts` admin routes to write to the new content path.
+### Supabase Integration
 
-2. **Headless CMS / Database backend**
-   - Store posts and media metadata in a database (Postgres, SQLite, etc.) rather than flat markdown files.
-   - Server queries a DB for posts; markdown content is stored as text fields.
-   - **Pros:** Full decoupling, instant content updates with zero restart, richer search/filter/query capabilities, natural home for tags/categories/SEO/visibility features.
-   - **Cons:** Loses git history of content. Adds database infrastructure and migration concerns. More complex than flat files.
-   - **Fit:** Highest effort. Would be a major architectural shift requiring new data models, migrations, and admin UI changes.
+The blog is configured to use Supabase for content storage:
 
-3. **Separate content API / microservice**
-   - Stand up a lightweight content service (could even be the current server repurposed) that serves posts via API, separate from the publishing pipeline.
-   - Admin writes content to this service directly; the blog reads from it.
-   - **Pros:** Decouples the content editing pipeline from the rendering pipeline.
-   - **Cons:** Adds infrastructure complexity. Overkill for a personal blog.
-   - **Fit:** Moderate-high effort. Unnecessary complexity for this scale.
+- **Database:** Postgres tables (`posts`, `media_entries`) with RLS enabled
+- **Storage:** Buckets for `images`, `audio`, `fonts`
+- **Environment:** Sandbox (`CONTENT_STORE=supabase`) uses Supabase; production/staging (`CONTENT_STORE=git`) use git-based content
 
-4. **Hybrid approach: content repo + git-sync, no rebuilds**
-   - Keep markdown as files but in a separate content repo. Server watches for file changes or polls for updates.
-   - Content changes trigger a lightweight content refresh (reload markdown cache), not a full PM2 restart or CI/CD pipeline.
-   - **Pros:** Keeps git history, eliminates server rebuilds for content, low infrastructure overhead.
-   - **Cons:** Still requires some git sync mechanism. Cache invalidation needs care.
-   - **Fit:** **Recommended.** Lowest effort with the best balance of simplicity, separation of concerns, and keeping git history.
-
-**Recommendation:** Strategy 4 (hybrid) or Strategy 1 (separate content directory) are the pragmatic choices. Strategy 2 (database) makes sense long-term if the blog grows in complexity and you want richer content management features, but it's overkill right now.
-
-### Supabase Migration Plan (2026-05-21)
-
-**Goal:** Decouple blog post content from server source code by migrating from git-based flat files to Supabase Postgres, using a three-phase rollout with fallback safety.
-
-**Design Principle:** Abstract the data layer so the database provider (Supabase → SQLite swap) is replaceable without touching application logic.
-
-#### Phase 1 — Build the DB abstraction layer (git-based only) ✅ COMPLETED
-- Create an abstract `PostStore` interface with methods: `listPosts()`, `getPost(slug)`, `savePost()`, `deletePost()`, `updatePost()`
-- Implement `GitPostStore` — the existing file-reading logic, refactored out of `posts.ts` into its own module
-- Add a config/env-driven provider selection (e.g., `CONTENT_STORE=git` or `CONTENT_STORE=supabase`)
-- Update `posts.ts` to use the abstraction instead of direct file reads
-- Update `+page.server.ts` admin routes to use the store abstraction
-- Update all tests to work with both backends
-- **No change to actual data yet** — everything still lives in git history
-- **Bonus fixes during Phase 1:** Fixed `parsePost` to handle both quoted and unquoted frontmatter fields (title, description, published) — posts with unquoted descriptions were parsing as blank
-
-#### Phase 2 — Add Supabase + fallback (dual-path) ✅ IN PROGRESS
-- **Supabase project setup:** ✅ Complete
-  - `posts` and `media_entries` tables created with RLS enabled (public read access)
-  - Storage buckets: `images`, `audio`, `fonts`
-  - `@supabase/supabase-js` installed on host
-  - Credentials managed via `/Users/samuelsampson/Coding/openclaw-blog/.blog-secrets` (manually parsed at PM2 startup via `ecosystem.config.cjs`)
-- **Supabase post store read/write:** ✅ Working — `SupabasePostStore` successfully lists, reads, writes, updates, and deletes posts on sandbox via the anon key. All CRUD operations verified. RLS allows public read; writes return inserted rows. See commit `1a282a8` (await fix for Supabase JS v2 async chain) and PR #33 (interface type alignment).
-
-  **⚠️ Secrets file format:** The `.blog-secrets` file must use plain `KEY=VALUE` lines (one per line). Do **not** use `export KEY=VALUE` — the parser splits on the first `=` and takes everything after it as the value, so the `export` prefix would become part of the key and silently break credential loading. Comments starting with `#` are supported and ignored. Blank lines are also ignored.
-
-  Example format:
-  ```
-  SUPABASE_URL=https://abc123.supabase.co
-  SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-  ```
-
-- **Supabase runtime access:** ✅ Verified — both `sams-blog-prod` and `sams-blog-staging` successfully read `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `.blog-secrets` at startup. The `/admin/supabase` admin page displays the injected values correctly.
-- **Pending:** `FallingBackPostStore`, staging banner, E2E validation
-
-#### Supabase Media Integration
-The media migration plan (interface, `FileSystemMediaStore`, `SupabaseMediaStore`) is documented in [MEDIA.md](MEDIA.md). Steps 1–3 (abstraction layer + both store implementations) are complete; Steps 4–8 (route wiring, migration script, sandbox verification, cleanup) remain.
-
-#### Phase 3 — Supabase-only (remove git content layer)
-- Once validated, switch to Supabase-only mode
-- Remove git-based content write paths from admin routes
-- Migrate existing git-based posts to Supabase (one-time migration script)
-- Remove `GitPostStore` from the active codebase (keep as archived reference)
-- Remove the source banner from staging
-- Content changes no longer trigger CI/CD pipeline
-
-#### Data model (supabase)
-```sql
-posts:
-  id (uuid, PK)
-  title (text)
-  slug (text, unique)
-  description (text)
-  content (text) — raw markdown
-  tags (text[]) — JSON array of tag strings
-  published (boolean, default false)
-  author (text, default 'sam') — canonical values: 'sam' or 'ai'
-  created_at (timestamptz)
-  updated_at (timestamptz)
-
-Tags stored as text array (no relational tags table needed at this scale)
-
-#### Key constraints
-- **Provider-swappable:** The abstract interface must be complete enough that Supabase ↔ SQLite swap is a matter of swapping one implementation file
-- **No behavioral changes in Phase 1:** The abstraction layer must produce identical results to the existing git-based behavior
-- **Staging banner** in Phase 2 so Sam can verify content source at a glance
-- **Zero host dependency:** Blog content stored in Supabase (Postgres). No files are required to exist on the local host.
-- **Media:** See [MEDIA.md](MEDIA.md) for the media migration plan, abstraction, and implementation details.
+See the source code for implementation details in `src/lib/server/*-store.ts`.
 
 ## Lessons Learned
 - **Visual Regression Flakiness:** Playwright visual regression tests are highly sensitive to active UI states. A simple `locator.click()` can leave a focus ring that fails screenshot diffs; appending `.blur()` immediately resolves this.
