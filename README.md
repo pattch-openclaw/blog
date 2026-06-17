@@ -117,7 +117,8 @@ Every time a commit is pushed to the `main` branch, the self-hosted runner will 
 
 # Project Notes
 
-## Completed Features (as of 2026-05-21)
+## Completed Features (as of 2026-06-16)
+- **Rich markdown editor with live preview:** The `/admin/write` page now uses TipTap (ProseMirror-based editor) with live preview panel. Supports rich formatting, code blocks, and markdown export. The editor persists state in local storage and handles SvelteKit form actions via `use:enhance`.
 - **Image picker on write page:** The `/admin/write` editor has an "Insert Image" dropdown that lists all images from `/media/images/`. Selecting one shows a preview thumbnail, generates the markdown `![alt](/media/images/{filename})`, and provides a copy button. The write page loads the image list server-side in `+page.server.ts`.
 - **Unified media management page:** `/admin/media` provides a gallery view of all uploaded images with thumbnails in a responsive grid. Supports uploading (images/audio/fonts), browsing, and deleting. Upload form lets you pick media type and file; deletes require confirmation. After upload, success alerts display the file path and suggested markdown syntax. Delete action is POST to `?/delete` with file path, removes from filesystem + git index, commits + pushes.
 - **Supabase Media Store:** When `CONTENT_STORE=supabase`, the `/admin/media` page now uses the `SupabaseMediaStore` backend for all media operations. Media is stored in Supabase Storage buckets (`images`, `audio`, `fonts`) and tracked in the `media_entries` Postgres table. The filesystem store (`FileSystemMediaStore`) is used when `CONTENT_STORE=git` (default). Both implementations are swappable via the `MediaStore` interface.
@@ -154,14 +155,29 @@ tags:                 # YAML array or comma-separated, empty if missing
 - ✅ Existing posts parse without `author`/`tags` (default to `"sam"` / `[]`)
 - ✅ Supabase `SupabasePostStore` handles `author`/`tags` — implemented and verified
 
-## Long-Term Goals (prioritized as we go)
-- **Rich markdown editor with live preview** — replace the raw textarea with a proper editor (e.g., TipTap, Monaco-based)
-- **Syntax highlighting on code blocks** — add Prism.js or similar to published posts
-- **Comment system integration** — disqus, giscus, or a self-hosted alternative
-- **SEO improvements** — meta tags, sitemaps, Open Graph / Twitter card support
-- **Version history / post revision tracking** — git-based diff view or a dedicated history page
-- **Scheduled publishing** — set a `publish_date` and have the site auto-publish at the right time
-- **Analytics or basic post view counts** — self-hosted or lightweight (e.g., Umami, Plausible, or a simple counter)
+## Long-Term Goals
+
+### Architectural Improvements (Higher Priority)
+- **Separate Sandbox DB from Staging/Prod** — Currently Sandbox, Staging, and Prod all share the same Supabase database. The goal is to have a dedicated database for Sandbox while Staging and Prod share another (to save costs). This would provide cleaner isolation during testing.
+- **SQLite Implementation** — Add a SQLite-backed datastore as an alternative to Supabase. This would allow local development without external dependencies and make the project more portable.
+
+### Feature Development (Current Priority)
+
+**Writing & Content Management UX:**
+- Rich markdown editor improvements
+- Better image/media embedding workflow
+- Post scheduling UI
+- Draft versioning
+
+**Blog Site Features:**
+- Syntax highlighting for code blocks
+- Comment system integration (giscus/disqus)
+- SEO improvements (meta tags, sitemaps, Open Graph/Twitter cards)
+- Tag and author filtering enhancements
+- Search functionality
+- Analytics / view counts
+
+> **Note:** The architectural goals above are not currently prioritized. Feature development for writing UX and blog site functionality takes precedence until the core experience is solidified.
 
 ## Architecture Notes
 
