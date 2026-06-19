@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { marked } from 'marked';
 
 	let { data, form } = $props();
@@ -34,10 +35,10 @@
 	let parsedContent = $derived(marked.parse(content));
 
 	// Track selected image object instead of just filename
-	let selectedImageEntry = $state<{ filename: string; public_url: string } | null>(null);
+	let selectedImageEntry = $state<{ filename: string; public_url: string; preview_url?: string } | null>(null);
 
 	let imageMarkdown = $derived(selectedImageEntry ? `![${selectedImageEntry.filename}](${selectedImageEntry.public_url})` : '');
-	let imagePreviewUrl = $derived(selectedImageEntry ? selectedImageEntry.public_url : '');
+	let imagePreviewUrl = $derived(selectedImageEntry ? (selectedImageEntry.preview_url || selectedImageEntry.public_url) : '');
 
 	// Author state
 	const AUTHORS = [
@@ -64,7 +65,7 @@
 	let successSlug = $state('');
 	let isSupabase = $state(false);
 
-	const handleEnhance = () => {
+	const handleEnhance: SubmitFunction = () => {
 		pending = true;
 		return async ({ result }) => {
 			pending = false;
