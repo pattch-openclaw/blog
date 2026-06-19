@@ -5,6 +5,7 @@ import { SupabasePostStore } from './supabase-post-store';
 // Shared mock data.
 const mockDbRows: Post[] = [
 	{
+		id: crypto.randomUUID(),
 		title: 'First Post',
 		slug: 'first-post',
 		description: 'The very first post.',
@@ -15,6 +16,7 @@ const mockDbRows: Post[] = [
 		content: '## First Post\n\nHello world!',
 	},
 	{
+		id: crypto.randomUUID(),
 		title: 'Second Post',
 		slug: 'second-post',
 		description: 'The second post.',
@@ -25,6 +27,7 @@ const mockDbRows: Post[] = [
 		content: '## Second Post\n\nAnother post.',
 	},
 	{
+		id: crypto.randomUUID(),
 		title: 'Third Post (null author)',
 		slug: 'third-post',
 		description: 'A post with null author.',
@@ -35,6 +38,7 @@ const mockDbRows: Post[] = [
 		content: '## Third Post\n\nNull author should default to sam.',
 	},
 	{
+		id: crypto.randomUUID(),
 		title: 'Fourth Post (empty author)',
 		slug: 'fourth-post',
 		description: 'A post with empty author.',
@@ -45,6 +49,7 @@ const mockDbRows: Post[] = [
 		content: '## Fourth Post\n\nEmpty author should default to sam.',
 	},
 	{
+		id: crypto.randomUUID(),
 		title: 'Draft Post',
 		slug: 'draft-post',
 		description: 'A draft.',
@@ -136,7 +141,7 @@ function buildMockDb(rows: Post[]) {
 					return {
 						select() {
 							const newRow = {
-								id: 'inserted-id',
+								id: crypto.randomUUID(),
 								title: (record.title as string) ?? '',
 								slug: (record.slug as string) ?? '',
 								description: (record.description as string) ?? '',
@@ -247,6 +252,7 @@ describe('SupabasePostStore', () => {
 	describe('savePost', () => {
 		test('creates a new post with published: false', async () => {
 			const newPost = await store.savePost({
+				id: crypto.randomUUID(),
 				title: 'New Post',
 				slug: 'new-post',
 				description: 'A brand new post.',
@@ -265,6 +271,7 @@ describe('SupabasePostStore', () => {
 
 		test('handles empty tags array', async () => {
 			const newPost = await store.savePost({
+				id: crypto.randomUUID(),
 				title: 'No Tags',
 				slug: 'no-tags',
 				description: 'No tags here.',

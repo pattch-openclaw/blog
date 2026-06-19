@@ -1,19 +1,26 @@
 import { fail } from '@sveltejs/kit';
 import { getStore, getWriteStore, getPosts, getAllTags, getContentStore, getMediaStore } from '$lib/server/posts';
+import { replaceSupabaseUrls } from '$lib/server/supabase-url-resolver';
 import { logger } from '$lib/logging';
 
 export const load = async ({ url }) => {
 	const slug = url.searchParams.get('slug');
 
 	// Get images from MediaStore (works for both git and supabase)
-	let images: Array<{ filename: string; public_url: string }> = [];
+	let images: Array<{ filename: string; public_url: string; preview_url?: string }> = [];
 	try {
 		const mediaStore = getMediaStore();
 		const mediaEntries = await mediaStore.listMedia();
-		images = mediaEntries
-			.filter(e => e.bucket === 'images')
-			.map(e => ({ filename: e.filename, public_url: e.public_url }))
-			.sort((a, b) => a.filename.localeCompare(b.filename));
+		const imageEntries = mediaEntries.filter(e => e.bucket === 'images');
+		
+		images = await Promise.all(
+			imageEntries.map(async e => ({ 
+				filename: e.filename, 
+				public_url: e.public_url,
+				preview_url: await replaceSupabaseUrls(e.public_url)
+			}))
+		);
+		images.sort((a, b) => a.filename.localeCompare(b.filename));
 	} catch (e) {
 		logger.error('Failed to load images for picker', e);
 	}
