@@ -9,7 +9,7 @@ test('@screendiff blog list page has expected layout and styling', async ({ page
     await page.goto('/blog');
 
     // Check title
-    await expect(page).toHaveTitle(/Writing \| Sam's Blog/);
+    await expect(page).toHaveTitle(/Writing \| STS.DEV/);
 
     // Wait for the posts to load
     await expect(page.locator('.posts')).toBeVisible();

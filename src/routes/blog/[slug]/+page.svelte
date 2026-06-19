@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-	<title>{post.title} | Sam's Blog</title>
+	<title>{post.title} | STS.DEV</title>
 </svelte:head>
 
 <h1 class="post-title">{post.title}</h1>

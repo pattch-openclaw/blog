@@ -98,7 +98,7 @@
 </script>
 
 <svelte:head>
-	<title>Writing | Sam's Blog</title>
+	<title>Writing | STS.DEV</title>
 </svelte:head>
 
 {#if Object.keys(tagCloud).length > 0}

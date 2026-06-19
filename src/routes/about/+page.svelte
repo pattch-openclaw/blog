@@ -1,5 +1,5 @@
 <svelte:head>
-	<title>About | Sam's Blog</title>
+	<title>About | STS.DEV</title>
 </svelte:head>
 
 <h1>About Me</h1>

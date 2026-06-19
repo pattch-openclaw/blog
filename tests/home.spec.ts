@@ -19,7 +19,7 @@ test('@screendiff homepage has expected title and structure', async ({ page }) =
     await page.locator('header h1 a').blur();
 
     // Check title
-    await expect(page).toHaveTitle(/Welcome \| Sam's Blog/);
+    await expect(page).toHaveTitle(/Welcome \| STS.DEV/);
 
     // Check the h2 heading
     await expect(page.locator('h2')).toContainText('Hi, I\'m Sam.');

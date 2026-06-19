@@ -4,7 +4,7 @@
 </script>
 
 <svelte:head>
-	<title>{title} | Sam's Blog</title>
+	<title>{title} | STS.DEV</title>
 </svelte:head>
 
 <div class="hero">

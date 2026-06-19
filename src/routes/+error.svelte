@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-	<title>{$page.status} | Sam's Blog</title>
+	<title>{$page.status} | STS.DEV</title>
 </svelte:head>
 
 <div class="error-container">
