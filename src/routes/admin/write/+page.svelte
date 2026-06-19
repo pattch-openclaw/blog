@@ -32,7 +32,20 @@
 	});
 
 	let isPreview = $state(false);
-	let parsedContent = $derived(marked.parse(content));
+	
+	let contentWithPreviewUrls = $derived.by(() => {
+		let replaced = content;
+		if (data?.images) {
+			for (const img of data.images) {
+				if (img.public_url && img.preview_url && replaced.includes(img.public_url)) {
+					replaced = replaced.replaceAll(img.public_url, img.preview_url);
+				}
+			}
+		}
+		return replaced;
+	});
+
+	let parsedContent = $derived(marked.parse(contentWithPreviewUrls));
 
 	// Track selected image object instead of just filename
 	let selectedImageEntry = $state<{ filename: string; public_url: string; preview_url?: string } | null>(null);
