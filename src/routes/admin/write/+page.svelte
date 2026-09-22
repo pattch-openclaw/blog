@@ -3,6 +3,7 @@
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { parsePostContent } from '$lib/directives';
 	import { directives } from '$lib/directives/client';
+	import { buildGalleryMarkdown } from '$lib/directives/gallery-markdown';
 
 	let { data, form } = $props();
 	
@@ -53,6 +54,27 @@
 
 	let imageMarkdown = $derived(selectedImageEntry ? `![${selectedImageEntry.filename}](${selectedImageEntry.public_url})` : '');
 	let imagePreviewUrl = $derived(selectedImageEntry ? (selectedImageEntry.preview_url || selectedImageEntry.public_url) : '');
+
+	// Gallery builder state — collapsed by default; selection is click-ordered
+	let galleryOpen = $state(false);
+	let gallerySelection = $state<string[]>([]);
+	let galleryImages = $derived.by(() => {
+		const all = data?.images ?? [];
+		return gallerySelection
+			.map((f) => all.find((i) => i.filename === f))
+			.filter((i): i is { filename: string; public_url: string } => Boolean(i));
+	});
+	let galleryMarkdown = $derived(buildGalleryMarkdown(galleryImages));
+
+	function toggleGalleryImage(filename: string) {
+		gallerySelection = gallerySelection.includes(filename)
+			? gallerySelection.filter((f) => f !== filename)
+			: [...gallerySelection, filename];
+	}
+
+	function clearGallery() {
+		gallerySelection = [];
+	}
 
 	// Author state
 	const AUTHORS = [
@@ -264,6 +286,71 @@
 								</button>
 								<img src={imagePreviewUrl} alt="Preview" class="image-preview-img" />
 								<small><em>Use the copy button above to copy the markdown, then paste into your content.</em></small>
+							</div>
+						{/if}
+					</div>
+
+					<div class="form-group gallery-builder-group">
+						<button
+							type="button"
+							class="btn-secondary btn-gallery-toggle"
+							aria-expanded={galleryOpen}
+							aria-controls="gallery-builder"
+							onclick={() => galleryOpen = !galleryOpen}
+						>
+							{galleryOpen ? '− Hide Gallery Builder' : '+ Add Gallery'}
+						</button>
+
+						{#if galleryOpen}
+							<div id="gallery-builder" class="gallery-builder">
+								<small>Select images in the order you want them to appear in the gallery. Click again to deselect.</small>
+								<div class="gallery-picker-grid" role="group" aria-label="Gallery image selection">
+									{#each data.images as img}
+										{@const picked = gallerySelection.includes(img.filename)}
+										<button
+											type="button"
+											class="gallery-pick"
+											class:selected={picked}
+											aria-pressed={picked}
+											title={img.filename}
+											onclick={() => toggleGalleryImage(img.filename)}
+										>
+											<img src={img.preview_url || img.public_url} alt={img.filename} loading="lazy" />
+											<span class="gallery-pick-name">{img.filename}</span>
+											{#if picked}
+												<span class="gallery-pick-order">{gallerySelection.indexOf(img.filename) + 1}</span>
+											{/if}
+										</button>
+									{/each}
+								</div>
+
+								{#if gallerySelection.length > 0}
+									<div class="gallery-copy-row">
+										<textarea
+											readonly
+											class="copy-field gallery-copy-field"
+											rows="4"
+											value={galleryMarkdown}
+											onclick={(e) => e.currentTarget.select()}
+											aria-label="Gallery directive markdown"
+										></textarea>
+										<div class="gallery-copy-actions">
+											<button
+												type="button"
+												class="btn-copy"
+												onclick={() => navigator.clipboard.writeText(galleryMarkdown)}
+												title="Copy gallery markdown"
+											>
+												<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+												Copy
+											</button>
+											<button type="button" class="btn-secondary btn-clear-gallery" onclick={clearGallery}>Clear</button>
+										</div>
+									</div>
+									<small><em>{gallerySelection.length} image{gallerySelection.length === 1 ? '' : 's'} selected — copy the markdown and paste it into your content.</em></small>
+								{:else}
+									<small class="gallery-empty-hint"><em>No images selected yet.</em></small>
+								{/if}
 							</div>
 						{/if}
 					</div>
@@ -687,6 +774,123 @@
 		border-radius: 4px;
 		display: block;
 		border: 1px solid var(--border-color);
+	}
+
+	/* Gallery builder (:::gallery directive) */
+	.btn-gallery-toggle {
+		padding: 0.5rem 1rem;
+		font-size: 0.9rem;
+		align-self: flex-start;
+	}
+
+	.gallery-builder {
+		margin-top: 0.75rem;
+		border: 1px solid var(--border-color);
+		border-radius: 6px;
+		padding: 0.75rem;
+		background: rgba(128, 128, 128, 0.05);
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.gallery-picker-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+		gap: 0.5rem;
+		/* scrollable so many images don't dominate the page */
+		max-height: 240px;
+		overflow-y: auto;
+		padding: 0.25rem;
+	}
+
+	.gallery-pick {
+		position: relative;
+		border: 2px solid var(--border-color);
+		border-radius: 6px;
+		background: var(--bg-color);
+		cursor: pointer;
+		padding: 0.25rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.7rem;
+		color: inherit;
+		transition: border-color 0.15s, box-shadow 0.15s;
+	}
+
+	.gallery-pick img {
+		width: 100%;
+		height: 72px;
+		object-fit: cover;
+		border-radius: 4px;
+		display: block;
+	}
+
+	.gallery-pick-name {
+		max-width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		opacity: 0.7;
+	}
+
+	.gallery-pick:hover {
+		border-color: var(--link-color);
+	}
+
+	.gallery-pick.selected {
+		border-color: var(--link-color);
+		box-shadow: 0 0 0 2px var(--link-color);
+	}
+
+	.gallery-pick-order {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		background: var(--link-color);
+		color: #fff;
+		border-radius: 50%;
+		width: 20px;
+		height: 20px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.7rem;
+		font-weight: 700;
+	}
+
+	.gallery-copy-row {
+		display: flex;
+		gap: 0.5rem;
+		align-items: flex-start;
+		flex-wrap: wrap;
+	}
+
+	.gallery-copy-field {
+		flex: 1;
+		min-width: 260px;
+		cursor: text;
+		font-family: monospace;
+		font-size: 0.85rem;
+		resize: vertical;
+	}
+
+	.gallery-copy-actions {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.btn-clear-gallery {
+		padding: 0 0.75rem;
+		font-size: 0.85rem;
+		height: 38px;
+	}
+
+	.gallery-empty-hint {
+		opacity: 0.7;
 	}
 
 	.btn-primary {

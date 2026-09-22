@@ -129,6 +129,7 @@ Every time a commit is pushed to the `main` branch, the self-hosted runner will 
   ```
 
 - **Client wiring (agreed design):** a single Svelte action `use:directives` on the prose container attaches one delegated click listener per mounted container (removed on destroy) — never per-gallery or global listeners. Applied on the post page and the `/admin/write` live preview. Gallery styles live in `src/app.css` so post pages and admin preview render identically.
+- **Gallery builder on `/admin/write`:** a collapsed “+ Add Gallery” button expands a scrollable thumbnail grid of all uploaded images; tap to toggle selection (click order = gallery order, shown as numbered badges). Generates the `:::gallery` directive markdown (pure helper `buildGalleryMarkdown` in `src/lib/directives/gallery-markdown.ts`) with a copy-to-clipboard field and Clear button, mirroring the existing single-image insert affordance. The live preview renders the copied directive and its thumbnails are clickable (same `use:directives` action).
 
 ## Completed Features (as of 2026-06-16)
 - **Rich markdown editor with live preview:** The `/admin/write` page now uses TipTap (ProseMirror-based editor) with live preview panel. Supports rich formatting, code blocks, and markdown export. The editor persists state in local storage and handles SvelteKit form actions via `use:enhance`.
