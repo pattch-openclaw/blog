@@ -117,6 +117,19 @@ Every time a commit is pushed to the `main` branch, the self-hosted runner will 
 
 # Project Notes
 
+## Directives & Image Galleries (2026-09-22)
+- **Block directives in post markdown:** `:::name ... :::` fences render custom HTML components via a marked extension (`src/lib/directives/`). Registry-driven: adding a directive = one renderer in `directiveRenderers` (`src/lib/directives/index.ts`) plus (if interactive) one handler in `directiveHandlers` (`src/lib/directives/client.ts`). Unclosed directives and directive syntax inside code fences degrade to plain markdown; unknown names render their body as markdown in a wrapper. No schema changes — directives live in the existing post content string, and Supabase signed-URL replacement runs on raw markdown before parsing so gallery image URLs sign normally.
+- **`:::gallery` directive:** body is markdown image lines; renders one large main image with a thumbnail strip below. First image is active in the static HTML (no-JS friendly); clicking a thumbnail swaps the main image and moves `is-active`/`aria-current`. Example:
+
+  ```markdown
+  :::gallery
+  ![alt text](https://.../images/a.png)
+  ![other image](https://.../images/b.png)
+  :::
+  ```
+
+- **Client wiring (agreed design):** a single Svelte action `use:directives` on the prose container attaches one delegated click listener per mounted container (removed on destroy) — never per-gallery or global listeners. Applied on the post page and the `/admin/write` live preview. Gallery styles live in `src/app.css` so post pages and admin preview render identically.
+
 ## Completed Features (as of 2026-06-16)
 - **Rich markdown editor with live preview:** The `/admin/write` page now uses TipTap (ProseMirror-based editor) with live preview panel. Supports rich formatting, code blocks, and markdown export. The editor persists state in local storage and handles SvelteKit form actions via `use:enhance`.
 - **Image picker on write page:** The `/admin/write` editor has an "Insert Image" dropdown that lists all images from `/media/images/`. Selecting one shows a preview thumbnail, generates the markdown `![alt](/media/images/{filename})`, and provides a copy button. The write page loads the image list server-side in `+page.server.ts`.

@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { marked } from 'marked';
+	import { parsePostContent } from '$lib/directives';
+	import { directives } from '$lib/directives/client';
 	let { data } = $props();
 	let post = $derived(data.post);
-	let contentHtml = $derived(marked.parse(post?.content || ''));
+	let contentHtml = $derived(parsePostContent(post?.content || ''));
 </script>
 
 <svelte:head>
@@ -19,7 +20,7 @@
 
 <hr class="post-divider">
 
-<div class="prose">{@html contentHtml}</div>
+<div class="prose" use:directives>{@html contentHtml}</div>
 
 <style>
 	.post-title {

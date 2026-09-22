@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
-	import { marked } from 'marked';
+	import { parsePostContent } from '$lib/directives';
+	import { directives } from '$lib/directives/client';
 
 	let { data, form } = $props();
 	
@@ -45,7 +46,7 @@
 		return replaced;
 	});
 
-	let parsedContent = $derived(marked.parse(contentWithPreviewUrls));
+	let parsedContent = $derived(parsePostContent(contentWithPreviewUrls));
 
 	// Track selected image object instead of just filename
 	let selectedImageEntry = $state<{ filename: string; public_url: string; preview_url?: string } | null>(null);
@@ -291,7 +292,7 @@
 	{#if isPreview && !isSuccess}
 		<div class="admin-preview">
 			<div class="preview-divider mobile-only">Preview</div>
-			<div class="preview-box">
+			<div class="preview-box" use:directives>
 				<!-- Use @html safely here since it's an admin context, but ideally sanitize -->
 				{@html parsedContent}
 			</div>
