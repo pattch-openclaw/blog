@@ -35,8 +35,17 @@ export interface MediaStore {
 	/**
 	 * Upload a file to the media store.
 	 * Handles any necessary post-save side effects internally.
+	 *
+	 * @param folder - Optional '/'-separated folder path within the bucket
+	 *                 (e.g. 'trips/2024'). Must already be sanitized.
 	 */
-	uploadMedia(file: File, bucket: 'images' | 'audio' | 'fonts'): Promise<MediaEntry>;
+	uploadMedia(file: File, bucket: 'images' | 'audio' | 'fonts', folder?: string): Promise<MediaEntry>;
+
+	/**
+	 * Resolve preview URLs for the given entry paths (as stored in MediaEntry.path).
+	 * Implementations sign URLs where required (Supabase), fall back to public URLs otherwise.
+	 */
+	previewUrls(paths: string[]): Promise<Map<string, string>>;
 
 	/**
 	 * Delete a media entry by its MediaEntry reference.
