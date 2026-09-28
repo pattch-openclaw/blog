@@ -47,37 +47,54 @@ export const actions: Actions = {
 		const mediaStore = getMediaStore();
 		const data = await request.formData();
 		const type = data.get('type')?.toString();
-		const file = data.get('file') as File;
+		const files = data.getAll('files').filter(
+			(f): f is File => f instanceof File && f.size > 0
+		);
 
 		if (!type || !['images', 'audio', 'fonts'].includes(type)) {
 			return fail(400, { error: 'Invalid media type', details: undefined, stdout: undefined, stderr: undefined });
 		}
 
-		if (!file || file.size === 0) {
-			return fail(400, { error: 'No file uploaded', details: undefined, stdout: undefined, stderr: undefined });
+		if (files.length === 0) {
+			return fail(400, { error: 'No files uploaded', details: undefined, stdout: undefined, stderr: undefined });
 		}
 
-		try {
-			const entry = await mediaStore.uploadMedia(file, type as 'images' | 'audio' | 'fonts', undefined);
-			
-			logger.info(`Media upload successful: ${entry.filename} (${(entry.size / 1024).toFixed(1)}KB) to ${entry.bucket}`);
-			
-			return { 
-				success: true, 
-				path: entry.public_url,
-				filename: entry.filename,
-				bucket: entry.bucket,
-				mimeType: entry.mime_type
-			};
-		} catch (e: any) {
-			logger.error('Media upload failed', e);
-			return fail(500, { 
-				error: `Upload failed`,
-				details: e.stack || e.message,
+		const bucket = type as 'images' | 'audio' | 'fonts';
+		const uploaded: { path: string; filename: string; bucket: string; mimeType: string }[] = [];
+		const failures: string[] = [];
+
+		for (const file of files) {
+			try {
+				const entry = await mediaStore.uploadMedia(file, bucket);
+
+				logger.info(`Media upload successful: ${entry.filename} (${(entry.size / 1024).toFixed(1)}KB) to ${entry.bucket}`);
+
+				uploaded.push({
+					path: entry.public_url,
+					filename: entry.filename,
+					bucket: entry.bucket,
+					mimeType: entry.mime_type
+				});
+			} catch (e: any) {
+				logger.error(`Media upload failed for ${file.name}`, e);
+				failures.push(`${file.name}: ${e.message || 'Upload failed'}`);
+			}
+		}
+
+		if (uploaded.length === 0) {
+			return fail(500, {
+				error: files.length === 1 ? 'Upload failed' : 'All uploads failed',
+				details: failures.join('\n'),
 				stdout: undefined,
 				stderr: undefined
 			});
 		}
+
+		return {
+			success: true,
+			uploaded,
+			failed: failures.length > 0 ? failures : undefined
+		};
 	},
 
 	delete: async ({ request }) => {

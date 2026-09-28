@@ -4,7 +4,14 @@
     let uploading = $state(false);
     let selectedImage = $state<string | null>(null);
     let selectedImageId = $state<string | null>(null);
-    let deleting = $state(false);</script>
+    let deleting = $state(false);
+    let uploadedResult = $derived(form?.success ? form.uploaded : null);
+    let failedUploads = $derived(form?.success ? form.failed : undefined);
+
+    function copyImageMarkdown(filename: string, path: string) {
+        const markdown = `![${filename}](${path})`;
+        navigator.clipboard.writeText(markdown);
+    }</script>
 
 <svelte:head>
     <title>Manage Media | Admin Dashboard</title>
@@ -16,14 +23,29 @@
         <h1>Manage Media</h1>
     </div>
 
-    {#if form?.success}
+    {#if uploadedResult}
         <div class="alert success">
-            File uploaded successfully! 
-            <br>
-            <strong>Path:</strong> <code>{form.path}</code>
-            <br>
-            <p>You can use this image in markdown like this:</p>
-            <code>![Alt Text]({form.path})</code>
+            {#if uploadedResult.length === 1}
+                File uploaded successfully!
+            {:else}
+                {uploadedResult.length} files uploaded successfully!
+            {/if}
+            <ul class="upload-results">
+                {#each uploadedResult as item}
+                    <li>
+                        <code>{item.path}</code>
+                        <button class="btn-copy" onclick={() => copyImageMarkdown(item.filename, item.path)}>Copy Markdown</button>
+                    </li>
+                {/each}
+            </ul>
+            {#if failedUploads}
+                <p class="upload-failures"><strong>Some uploads failed:</strong></p>
+                <ul class="upload-failures">
+                    {#each failedUploads as failure}
+                        <li>{failure}</li>
+                    {/each}
+                </ul>
+            {/if}
         </div>
     {/if}
 
@@ -105,8 +127,9 @@
         </div>
 
         <div class="form-group">
-            <label for="file">File</label>
-            <input type="file" name="file" id="file" required accept="image/*,audio/*,.woff,.woff2,.ttf" />
+            <label for="files">Files</label>
+            <input type="file" name="files" id="files" required multiple accept="image/*,audio/*,.woff,.woff2,.ttf" />
+            <p class="form-hint">Select multiple files to upload them all at once.</p>
         </div>
 
         <button type="submit" disabled={uploading} class="btn-submit">
@@ -344,6 +367,40 @@
         background: rgba(0, 0, 0, 0.1);
         padding: 0.2rem 0.4rem;
         border-radius: 4px;
+    }
+
+    .upload-results {
+        list-style: none;
+        margin: 0.75rem 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .upload-results li {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .upload-results code {
+        margin-top: 0;
+        flex: 1;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .upload-failures {
+        color: #cc0000;
+        margin-top: 0.75rem;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .upload-failures {
+            color: #ffb3b3;
+        }
     }
 
     .code-block {
