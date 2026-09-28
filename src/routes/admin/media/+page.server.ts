@@ -1,26 +1,27 @@
 import type { PageServerLoad, Actions } from './$types';
-import { getMediaStore, type MediaStore } from '$lib/server/media-store';
-import { replaceSupabaseUrls } from '$lib/server/supabase-url-resolver';
+import { getMediaStore } from '$lib/server/media-store';
+import { bucketRelPath, sanitizeMediaFolder } from '$lib/media-paths';
 import { fail } from '@sveltejs/kit';
 import { logger } from '$lib/logging';
 
 export const load: PageServerLoad = async () => {
 	const mediaStore = getMediaStore();
 	const entries = await mediaStore.listMedia();
-	
-	// Add signed URLs for images to render thumbnails properly
-	const images = await Promise.all(
-		entries
-			.filter(e => e.bucket === 'images')
-			.map(async e => ({
-				name: e.filename,
-				path: e.public_url,
-				preview_url: await replaceSupabaseUrls(e.public_url),
-				id: e.id,
-				bucket: e.bucket,
-			}))
-	);
-	
+
+	// Lightweight listing only — no URL signing on page load. Thumbnails are
+	// signed lazily per-folder via POST /admin/media/thumbs when a folder is expanded.
+	const images = entries
+		.filter(e => e.bucket === 'images')
+		.map(e => ({
+			id: e.id,
+			name: e.filename,
+			/** Path relative to the images bucket, e.g. 'trips/2026/x.png' */
+			rel: bucketRelPath(e.path, 'images'),
+			/** Storage path used for signing, e.g. 'images/trips/2026/x.png' */
+			storage_path: e.path,
+			path: e.public_url,
+		}));
+
 	const audio = entries
 		.filter(e => e.bucket === 'audio')
 		.map(e => ({
@@ -29,7 +30,7 @@ export const load: PageServerLoad = async () => {
 			id: e.id,
 			bucket: e.bucket,
 		}));
-	
+
 	const fonts = entries
 		.filter(e => e.bucket === 'fonts')
 		.map(e => ({
@@ -47,6 +48,7 @@ export const actions: Actions = {
 		const mediaStore = getMediaStore();
 		const data = await request.formData();
 		const type = data.get('type')?.toString();
+		const folder = sanitizeMediaFolder(data.get('folder')?.toString() ?? '');
 		const files = data.getAll('files').filter(
 			(f): f is File => f instanceof File && f.size > 0
 		);
@@ -65,7 +67,7 @@ export const actions: Actions = {
 
 		for (const file of files) {
 			try {
-				const entry = await mediaStore.uploadMedia(file, bucket);
+				const entry = await mediaStore.uploadMedia(file, bucket, folder);
 
 				logger.info(`Media upload successful: ${entry.filename} (${(entry.size / 1024).toFixed(1)}KB) to ${entry.bucket}`);
 
@@ -122,7 +124,7 @@ export const actions: Actions = {
 			return { success: true, deletedId: entryId };
 		} catch (e: any) {
 			logger.error('Media delete failed', e);
-			return fail(500, { 
+			return fail(500, {
 				error: `Delete failed`,
 				details: e.stack || e.message,
 				stdout: undefined,

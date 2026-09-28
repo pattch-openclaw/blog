@@ -118,8 +118,8 @@ const migratePostToSupabase = async (slug: string): Promise<{ success: boolean; 
 		const file = new File([buffer], path.basename(mediaPath), { type: detectMimeType(mediaPath) });
 
 		try {
-			// Upload with the post ID so media entries are linked
-			const entry = await stores.supabaseMediaStore.uploadMedia(file, bucket, supabasePostWithId.id);
+			// Flat upload (bucket root) — preserves the original migration layout
+			const entry = await stores.supabaseMediaStore.uploadMedia(file, bucket);
 			pathToUrl.set(mediaPath, entry.public_url);
 			mediaCount++;
 		} catch (e: any) {

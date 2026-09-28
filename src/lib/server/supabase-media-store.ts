@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseClient } from './supabase-client';
+import { sanitizeMediaFolder } from '$lib/media-paths';
 import type { MediaEntry, MediaStore } from './media-store';
 import { logger } from '$lib/logging';
 import path from 'node:path';
@@ -239,12 +240,17 @@ export class SupabaseMediaStore implements MediaStore {
 	async uploadMedia(
 		file: File,
 		bucket: 'images' | 'audio' | 'fonts',
+		folder?: string,
 	): Promise<MediaEntry> {
 		this.validateBucket(bucket);
 
 		// Sanitize filename to prevent path traversal
 		const safeFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-		const filePath = `${bucket}/${safeFilename}`;
+		// Sanitized folder prefix (already cleaned by the caller); empty = bucket root
+		const safeFolder = sanitizeMediaFolder(folder ?? '');
+		const filePath = safeFolder
+			? `${bucket}/${safeFolder}/${safeFilename}`
+			: `${bucket}/${safeFilename}`;
 
 		logger.agent('supabase.uploadMedia', 'info', `Uploading ${bucket}/${safeFilename} (${file.size} bytes)`);
 
@@ -300,6 +306,24 @@ export class SupabaseMediaStore implements MediaStore {
 			size: insertedRow.size,
 			public_url: this.buildPublicUrl(insertedRow.path),
 		};
+	}
+
+	/**
+	 * Resolve preview URLs for storage paths (e.g. 'images/trips/photo.png').
+	 * Signs each path; falls back to the public URL when signing is unavailable.
+	 */
+	async previewUrls(paths: string[]): Promise<Map<string, string>> {
+		const previews = new Map<string, string>();
+		await Promise.all(
+			paths.map(async (p) => {
+				try {
+					previews.set(p, await this.getSignedUrl(p));
+				} catch {
+					previews.set(p, this.buildPublicUrl(p));
+				}
+			})
+		);
+		return previews;
 	}
 
 	/**

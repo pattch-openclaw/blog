@@ -212,6 +212,35 @@ describe('SupabaseMediaStore', () => {
 	});
 
 	describe('uploadMedia', () => {
+		test('uploads into a folder prefix when provided', async () => {
+			const store = new SupabaseMediaStore(mockClient);
+			const testFile = new File(['data'], 'beach.png', { type: 'image/png' });
+			const result = await store.uploadMedia(testFile, 'images', 'trips/2026');
+
+			expect(result.path).toBe('images/trips/2026/beach.png');
+			expect(result.filename).toBe('beach.png');
+			expect(result.public_url).toContain('/storage/v1/object/public/images/trips/2026/beach.png');
+			const uploaded = mockClient.getUploadedFiles().at(-1)!;
+			expect(uploaded.path).toBe('images/trips/2026/beach.png');
+			expect(uploaded.bucket).toBe('images');
+		});
+
+		test('sanitizes malicious folder prefixes', async () => {
+			const store = new SupabaseMediaStore(mockClient);
+			const testFile = new File(['data'], 'x.png', { type: 'image/png' });
+			const result = await store.uploadMedia(testFile, 'images', '../evil/../secret/');
+
+			expect(result.path).toBe('images/secret/x.png');
+		});
+
+		test('empty or slash-only folder uploads to bucket root', async () => {
+			const store = new SupabaseMediaStore(mockClient);
+			const testFile = new File(['data'], 'root.png', { type: 'image/png' });
+			const result = await store.uploadMedia(testFile, 'images', '///');
+
+			expect(result.path).toBe('images/root.png');
+		});
+
 		test('uploads file to Supabase Storage and inserts media_entries row', async () => {
 			const store = new SupabaseMediaStore(mockClient);
 			const testFile = new File(['test content'], 'test-image.png', { type: 'image/png' });
@@ -271,6 +300,23 @@ describe('SupabaseMediaStore', () => {
 			const result = await store.uploadMedia(testFile, 'fonts');
 			expect(result.bucket).toBe('fonts');
 			expect(result.mime_type).toBe('font/woff2');
+		});
+	});
+
+	describe('previewUrls', () => {
+		test('returns a preview URL for every requested path (public fallback without service key)', async () => {
+			const store = new SupabaseMediaStore(mockClient);
+			const urls = await store.previewUrls(['images/logo.png', 'images/trips/x.png']);
+
+			expect(urls.size).toBe(2);
+			expect(urls.get('images/logo.png')).toContain('/storage/v1/object/public/images/logo.png');
+			expect(urls.get('images/trips/x.png')).toContain('/storage/v1/object/public/images/trips/x.png');
+		});
+
+		test('empty path list returns empty map', async () => {
+			const store = new SupabaseMediaStore(mockClient);
+			const urls = await store.previewUrls([]);
+			expect(urls.size).toBe(0);
 		});
 	});
 

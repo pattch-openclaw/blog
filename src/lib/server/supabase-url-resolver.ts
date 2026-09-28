@@ -54,10 +54,11 @@ export class SupabaseUrlResolver {
 			const parsed = new URL(url);
 			// Path format: /storage/v1/object/public/<bucket>/<filename>
 			const parts = parsed.pathname.split('/').filter(Boolean);
-			// parts will be: ['storage', 'v1', 'object', 'public', bucket, filename]
+			// parts will be: ['storage', 'v1', 'object', 'public', bucket, ...pathSegments]
 			if (parts.length >= 6 && parts[0] === 'storage' && parts[1] === 'v1') {
 				const bucket = parts[4];
-				const filename = parts[5];
+				// Folder-nested objects keep extra path segments: rejoin them
+				const filename = parts.slice(5).join('/');
 				if (['images', 'audio', 'fonts'].includes(bucket)) {
 					return { bucket, filename };
 				}

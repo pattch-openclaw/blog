@@ -1,5 +1,6 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
+    import { buildFolderTree, type FolderNodeData } from '$lib/media-paths';
     let { form, data } = $props();
     let uploading = $state(false);
     let selectedImage = $state<string | null>(null);
@@ -8,16 +9,110 @@
     let uploadedResult = $derived(form?.success ? form.uploaded : null);
     let failedUploads = $derived(form?.success ? form.failed : undefined);
 
+    // --- Folder tree (client-side split on path prefix) ---
+    // load() returns a lightweight listing: id/name/rel/storage_path/path with
+    // no signed URLs. Thumbnails are fetched lazily per-folder on first expand.
+    type MediaImage = { id: string; name: string; rel: string; storage_path: string; path: string };
+
+    let imagesByRel = $derived(new Map(data.images.map((i: MediaImage) => [i.rel, i])));
+    let tree = $derived(buildFolderTree(data.images.map((i: MediaImage) => i.rel)));
+    let nodesByDir = $derived.by(() => {
+        const map = new Map<string, FolderNodeData>();
+        const visit = (node: FolderNodeData) => {
+            map.set(node.dir, node);
+            node.folders.forEach(visit);
+        };
+        visit(tree);
+        return map;
+    });
+
+    let expanded = $state<Record<string, boolean>>({});
+    let loadingDirs = $state<Record<string, boolean>>({});
+    let loadedDirs = $state<Record<string, boolean>>({});
+    let previewUrls = $state<Record<string, string>>({});
+    let thumbErrors = $state<Record<string, boolean>>({});
+
+    async function toggleFolder(dir: string) {
+        if (expanded[dir]) {
+            expanded[dir] = false;
+            return;
+        }
+        expanded[dir] = true;
+        const node = nodesByDir.get(dir);
+        if (!node || node.files.length === 0) return;
+        if (loadedDirs[dir] || loadingDirs[dir]) return;
+
+        loadingDirs[dir] = true;
+        thumbErrors[dir] = false;
+        try {
+            const paths = node.files
+                .map((rel) => imagesByRel.get(rel)?.storage_path)
+                .filter((p): p is string => Boolean(p));
+            const res = await fetch('/admin/media/thumbs', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ paths })
+            });
+            if (!res.ok) throw new Error(`thumbs request failed (${res.status})`);
+            const body = await res.json() as { urls?: Record<string, string> };
+            if (body.urls) {
+                for (const [path, url] of Object.entries(body.urls)) {
+                    previewUrls[path] = url;
+                }
+            }
+            loadedDirs[dir] = true;
+        } catch {
+            thumbErrors[dir] = true;
+        } finally {
+            loadingDirs[dir] = false;
+        }
+    }
+
     function copyImageMarkdown(filename: string, path: string) {
         const markdown = `![${filename}](${path})`;
         navigator.clipboard.writeText(markdown);
-    }</script>
+    }
+</script>
 
 <svelte:head>
     <title>Manage Media | Admin Dashboard</title>
 </svelte:head>
 
 <div class="admin-container">
+    {#snippet folderNode(node: FolderNodeData)}
+        <div class="folder">
+            <button class="folder-toggle" type="button" aria-expanded={Boolean(expanded[node.dir])}
+                onclick={() => toggleFolder(node.dir)}>
+                <span class="folder-caret">{expanded[node.dir] ? '▾' : '▸'}</span>
+                <span class="folder-name">{node.dir === '' ? '(root)' : node.name}</span>
+                <span class="folder-count">{node.total}</span>
+            </button>
+            {#if expanded[node.dir]}
+                {#if loadingDirs[node.dir]}
+                    <p class="folder-status">Loading previews…</p>
+                {:else if thumbErrors[node.dir]}
+                    <p class="folder-status folder-status-error">Couldn't load previews — images shown at full size. <button class="folder-retry" type="button" onclick={() => toggleFolder(node.dir)}>Retry</button></p>
+                {/if}
+                {#if node.files.length > 0}
+                    <div class="gallery">
+                        {#each node.files as rel}
+                            {#if imagesByRel.get(rel)}
+                                {@const image = imagesByRel.get(rel)!}
+                                <button class="gallery-item {selectedImage === image.path ? 'selected' : ''}" type="button" onclick={() => { selectedImage = image.path; selectedImageId = image.id; }}>
+                                    <img src={previewUrls[image.storage_path] || image.path} alt={image.name} loading="lazy" />
+                                    <span class="gallery-name" title={image.rel}>{image.name}</span>
+                                </button>
+                            {/if}
+                        {/each}
+                    </div>
+                {/if}
+                {#each node.folders as child}
+                    {@render folderNode(child)}
+                {/each}
+            {/if}
+        </div>
+    {/snippet}
+
     <div class="header">
         <a href="/admin" class="back-link">← Back to Dashboard</a>
         <h1>Manage Media</h1>
@@ -74,13 +169,8 @@
     {#if data.images.length > 0}
         <div class="gallery-section">
             <h2 class="gallery-title">Uploaded Images ({data.images.length})</h2>
-            <div class="gallery">
-                {#each data.images as image}
-                    <button class="gallery-item {selectedImage === image.path ? 'selected' : ''}" type="button" onclick={() => { selectedImage = image.path; selectedImageId = image.id; }}>
-                        <img src={image.preview_url || image.path} alt={image.name} loading="lazy" />
-                        <span class="gallery-name" title={image.name}>{image.name}</span>
-                    </button>
-                {/each}
+            <div class="folder-tree">
+                {@render folderNode(tree)}
             </div>
             {#if selectedImage}
                 <div class="selection-info">
@@ -124,6 +214,12 @@
                 <option value="audio">Audio</option>
                 <option value="fonts">Font</option>
             </select>
+        </div>
+
+        <div class="form-group">
+            <label for="folder">Folder path (optional)</label>
+            <input type="text" name="folder" id="folder" placeholder="e.g. trips/2026" autocomplete="off" spellcheck="false" />
+            <p class="form-hint">Files are stored under this path. Nested paths create nested folders; leave empty for the top level.</p>
         </div>
 
         <div class="form-group">
@@ -172,6 +268,76 @@
 
     .gallery-section {
         margin-bottom: 2rem;
+    }
+
+    .folder-tree {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .folder {
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+        background: rgba(128, 128, 128, 0.04);
+    }
+
+    .folder .folder {
+        margin-top: 0.5rem;
+        margin-left: 1rem;
+    }
+
+    .folder-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: none;
+        border: none;
+        padding: 0.25rem 0;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--text-color);
+    }
+
+    .folder-toggle:hover .folder-name {
+        color: var(--link-color);
+    }
+
+    .folder-caret {
+        width: 1rem;
+        color: #888;
+    }
+
+    .folder-count {
+        font-weight: 400;
+        font-size: 0.8rem;
+        color: #888;
+    }
+
+    .folder-status {
+        font-size: 0.8rem;
+        color: #888;
+        margin: 0.25rem 0 0.5rem;
+    }
+
+    .folder-status-error {
+        color: #cc0000;
+    }
+
+    .folder-retry {
+        background: none;
+        border: none;
+        color: var(--link-color);
+        cursor: pointer;
+        font-size: 0.8rem;
+        padding: 0;
+        text-decoration: underline;
+    }
+
+    .gallery {
+        margin-top: 0.5rem;
     }
 
     .gallery-title {
