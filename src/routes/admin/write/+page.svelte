@@ -4,6 +4,7 @@
 	import { parsePostContent } from '$lib/directives';
 	import { directives } from '$lib/directives/client';
 	import { buildGalleryMarkdown } from '$lib/directives/gallery-markdown';
+	import { buildFolderTree, baseOf, type FolderNodeData } from '$lib/media-paths';
 
 	let { data, form } = $props();
 	
@@ -55,21 +56,33 @@
 	let imageMarkdown = $derived(selectedImageEntry ? `![${selectedImageEntry.filename}](${selectedImageEntry.public_url})` : '');
 	let imagePreviewUrl = $derived(selectedImageEntry ? (selectedImageEntry.preview_url || selectedImageEntry.public_url) : '');
 
-	// Gallery builder state — collapsed by default; selection is click-ordered
+	// Gallery builder state — collapsed by default; selection is click-ordered.
+	// Selection is keyed by bucket-relative path (`rel`) so identical filenames
+	// in different folders stay distinct.
 	let galleryOpen = $state(false);
 	let gallerySelection = $state<string[]>([]);
 	let galleryImages = $derived.by(() => {
 		const all = data?.images ?? [];
 		return gallerySelection
-			.map((f) => all.find((i) => i.filename === f))
-			.filter((i): i is { filename: string; public_url: string } => Boolean(i));
+			.map((rel) => all.find((i) => i.rel === rel))
+			.filter((i) => i !== undefined);
 	});
 	let galleryMarkdown = $derived(buildGalleryMarkdown(galleryImages));
 
-	function toggleGalleryImage(filename: string) {
-		gallerySelection = gallerySelection.includes(filename)
-			? gallerySelection.filter((f) => f !== filename)
-			: [...gallerySelection, filename];
+	// Folder tree mirroring /admin/media: client-side split of `rel` paths.
+	// Previews are already signed in load(), so no lazy thumbnail fetch here.
+	let galleryTree = $derived(buildFolderTree((data?.images ?? []).map((i) => i.rel)));
+	let imagesByRel = $derived(new Map((data?.images ?? []).map((i) => [i.rel, i])));
+	let galleryExpanded = $state<Record<string, boolean>>({ '': true });
+
+	function toggleGalleryFolder(dir: string) {
+		galleryExpanded[dir] = !galleryExpanded[dir];
+	}
+
+	function toggleGalleryImage(rel: string) {
+		gallerySelection = gallerySelection.includes(rel)
+			? gallerySelection.filter((f) => f !== rel)
+			: [...gallerySelection, rel];
 	}
 
 	function clearGallery() {
@@ -304,24 +317,47 @@
 						{#if galleryOpen}
 							<div id="gallery-builder" class="gallery-builder">
 								<small>Select images in the order you want them to appear in the gallery. Click again to deselect.</small>
-								<div class="gallery-picker-grid" role="group" aria-label="Gallery image selection">
-									{#each data.images as img}
-										{@const picked = gallerySelection.includes(img.filename)}
-										<button
-											type="button"
-											class="gallery-pick"
-											class:selected={picked}
-											aria-pressed={picked}
-											title={img.filename}
-											onclick={() => toggleGalleryImage(img.filename)}
-										>
-											<img src={img.preview_url || img.public_url} alt={img.filename} loading="lazy" />
-											<span class="gallery-pick-name">{img.filename}</span>
-											{#if picked}
-												<span class="gallery-pick-order">{gallerySelection.indexOf(img.filename) + 1}</span>
-											{/if}
+								{#snippet galleryFolder(node: FolderNodeData)}
+									<div class="gallery-folder">
+										<button class="gallery-folder-toggle" type="button" aria-expanded={Boolean(galleryExpanded[node.dir])}
+											onclick={() => toggleGalleryFolder(node.dir)}>
+											<span class="gallery-folder-caret">{galleryExpanded[node.dir] ? '▾' : '▸'}</span>
+											<span class="gallery-folder-name">{node.dir === '' ? '(root)' : node.name}</span>
+											<span class="gallery-folder-count">{node.total}</span>
 										</button>
-									{/each}
+										{#if galleryExpanded[node.dir]}
+											{#if node.files.length > 0}
+												<div class="gallery-picker-grid" role="group" aria-label="Gallery image selection in {node.dir === '' ? 'root' : node.dir}">
+													{#each node.files as rel}
+														{#if imagesByRel.get(rel)}
+															{@const img = imagesByRel.get(rel)!}
+															{@const picked = gallerySelection.includes(rel)}
+															<button
+																type="button"
+																class="gallery-pick"
+																class:selected={picked}
+																aria-pressed={picked}
+																title={rel}
+																onclick={() => toggleGalleryImage(rel)}
+															>
+																<img src={img.preview_url || img.public_url} alt={img.filename} loading="lazy" />
+																<span class="gallery-pick-name">{baseOf(rel)}</span>
+																{#if picked}
+																	<span class="gallery-pick-order">{gallerySelection.indexOf(rel) + 1}</span>
+																{/if}
+															</button>
+														{/if}
+													{/each}
+												</div>
+											{/if}
+											{#each node.folders as child}
+												{@render galleryFolder(child)}
+											{/each}
+										{/if}
+									</div>
+								{/snippet}
+								<div class="gallery-folder-tree">
+									{@render galleryFolder(galleryTree)}
 								</div>
 
 								{#if gallerySelection.length > 0}
@@ -794,14 +830,62 @@
 		gap: 0.5rem;
 	}
 
+	.gallery-folder-tree {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		/* scrollable so many images/folders don't dominate the page */
+		max-height: 320px;
+		overflow-y: auto;
+		padding: 0.25rem;
+	}
+
+	.gallery-folder {
+		border: 1px solid var(--border-color);
+		border-radius: 6px;
+		padding: 0.35rem 0.6rem;
+		background: rgba(128, 128, 128, 0.04);
+	}
+
+	.gallery-folder .gallery-folder {
+		margin-top: 0.35rem;
+		margin-left: 0.75rem;
+	}
+
+	.gallery-folder-toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		background: none;
+		border: none;
+		padding: 0.15rem 0;
+		font: inherit;
+		font-size: 0.85rem;
+		font-weight: 600;
+		cursor: pointer;
+		color: var(--text-color);
+	}
+
+	.gallery-folder-toggle:hover .gallery-folder-name {
+		color: var(--link-color);
+	}
+
+	.gallery-folder-caret {
+		width: 0.9rem;
+		color: #888;
+	}
+
+	.gallery-folder-count {
+		font-weight: 400;
+		font-size: 0.75rem;
+		color: #888;
+	}
+
 	.gallery-picker-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
 		gap: 0.5rem;
-		/* scrollable so many images don't dominate the page */
-		max-height: 240px;
-		overflow-y: auto;
-		padding: 0.25rem;
+		margin-top: 0.35rem;
 	}
 
 	.gallery-pick {
