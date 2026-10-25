@@ -175,6 +175,24 @@ tags:                 # YAML array or comma-separated, empty if missing
 - **Separate Sandbox DB from Staging/Prod** — Currently Sandbox, Staging, and Prod all share the same Supabase database. The goal is to have a dedicated database for Sandbox while Staging and Prod share another (to save costs). This would provide cleaner isolation during testing.
 - **SQLite Implementation** — Add a SQLite-backed datastore as an alternative to Supabase. This would allow local development without external dependencies and make the project more portable.
 
+### Image Optimization (ImageKit Integration Plan)
+**Problem**: Serving high-resolution images directly from Supabase consumes excessive egress bandwidth, hitting free-tier limits.
+**Solution**: Integrate ImageKit.io as a CDN and image optimization proxy in front of the Supabase Storage buckets.
+
+**Integration & Setup Steps**:
+1. **ImageKit Configuration**: 
+   - Create an ImageKit account and configure a new "Origin" (Web Folder type) pointing to the base Supabase Storage URL (e.g., `https://[SUPABASE_PROJECT_ID].supabase.co/storage/v1/object/public/`).
+   - Retrieve your ImageKit URL endpoint (e.g., `https://ik.imagekit.io/[your_imagekit_id]/`).
+2. **Secrets / Env Management**:
+   - Add `IMAGEKIT_URL` to the shared `.blog-secrets` file. 
+   - *Note:* Since the Supabase bucket is public, private ImageKit API keys are not required for read-only proxying and resizing, keeping the security surface minimal.
+   - Run `pm2 restart sams-blog-prod sams-blog-staging sams-blog-sandbox` to inject the new environment variable.
+3. **Application Linking (Code Changes)**:
+   - Update the blog's image rendering logic (specifically the Markdown parser and `:::gallery` directive handlers). When generating `<img>` tags, replace the base Supabase URL with the ImageKit URL.
+   - Append transformation parameters dynamically based on the display context:
+     - **Thumbnails (Galleries):** Append `?tr=w-300,h-300` for fast-loading grid previews.
+     - **Large (Blog Posts):** Append `?tr=w-1200` to constrain massive native images to a sensible max width for the post body.
+
 ### Feature Development (Current Priority)
 
 **Writing & Content Management UX:**
