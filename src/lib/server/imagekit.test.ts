@@ -24,20 +24,22 @@ describe('getImageKitEndpoint', () => {
 });
 
 describe('rewriteToImageKit', () => {
-	const PUB = 'https://proj-abc.supabase.co/storage/v1/object/public/images/trips/x.png';
+	// Sanitized example URL:
+	// const EXA = 'https://proj-abc.supabase.co/storage/v1/object/public/images/images/eu26/naples/general/IMG_9655.jpeg'
+	const PUB = 'https://proj-abc.supabase.co/storage/v1/object/public/images/images/trips/x.png';
 
 	it('rewrites public URLs to the endpoint, keeping the full path', () => {
 		process.env.IMAGEKIT_URL = EP;
 		expect(rewriteToImageKit(`![x](${PUB})`)).toBe(
-			`![x](${EP}/storage/v1/object/public/images/trips/x.png)`
+			`![x](${EP}/trips/x.png)`
 		);
 	});
 
 	it('rewrites legacy signed URLs to the public path, stripping the token', () => {
 		process.env.IMAGEKIT_URL = EP;
 		const signed =
-			'https://proj-abc.supabase.co/storage/v1/object/sign/images/x.png?token=eyJhbGciOiJIUzI1NiJ9.eyJ1cmwiOie';
-		expect(rewriteToImageKit(signed)).toBe(`${EP}/storage/v1/object/public/images/x.png`);
+			'https://proj-abc.supabase.co/storage/v1/object/sign/images/images/x.png?token=eyJhbGciOiJIUzI1NiJ9.eyJ1cmwiOie';
+		expect(rewriteToImageKit(signed)).toBe(`${EP}/x.png`);
 	});
 
 	it('is idempotent', () => {
@@ -60,11 +62,11 @@ describe('rewriteToImageKit', () => {
 	it('rewrites multiple URLs in one string, preserving markdown around them', () => {
 		process.env.IMAGEKIT_URL = EP;
 		const md =
-			'Before ![a](https://p1.supabase.co/storage/v1/object/public/images/a.png) mid\n\n' +
-			':::gallery\n![b](https://p2.supabase.co/storage/v1/object/public/images/nested/b.png "t")\n:::';
+			'Before ![a](https://p1.supabase.co/storage/v1/object/public/images/images/a.png) mid\n\n' +
+			':::gallery\n![b](https://p2.supabase.co/storage/v1/object/public/images/images/nested/b.png "t")\n:::';
 		const out = rewriteToImageKit(md);
-		expect(out).toContain(`${EP}/storage/v1/object/public/images/a.png`);
-		expect(out).toContain(`${EP}/storage/v1/object/public/images/nested/b.png "t"`);
+		expect(out).toContain(`${EP}/a.png`);
+		expect(out).toContain(`${EP}/nested/b.png "t"`);
 		expect(out).not.toContain('supabase.co');
 	});
 });
