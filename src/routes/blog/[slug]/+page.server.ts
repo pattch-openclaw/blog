@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { getStore, getContentStore } from '$lib/server/posts';
-import { replaceSupabaseUrls } from '$lib/server/supabase-url-resolver';
+import { rewriteToImageKit } from '$lib/server/imagekit';
 import { logger } from '$lib/logging';
 
 export async function load({ params }) {
@@ -11,7 +11,8 @@ export async function load({ params }) {
 		error(404, 'Not found');
 	}
 
-	// For Supabase-hosted posts, replace public Storage URLs with signed URLs
+	// Serve Supabase-hosted images through the ImageKit CDN (public bucket).
+	// No-op when IMAGEKIT_URL is unset; git-store /media paths pass through.
 	const originalContent = post.content || '';
 	const contentStore = getContentStore();
 	
@@ -21,7 +22,7 @@ export async function load({ params }) {
 	const hasSupabaseUrl = originalContent.includes('storage/v1/object/public');
 	logger.debug('blog.load', `Has Supabase URL in content: ${hasSupabaseUrl}`);
 	
-	const content = contentStore === 'supabase' ? await replaceSupabaseUrls(originalContent) : originalContent;
+	const content = rewriteToImageKit(originalContent);
 	
 	logger.debug('blog.load', `Content replaced: ${content !== originalContent}`);
 

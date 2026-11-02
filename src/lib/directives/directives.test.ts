@@ -50,6 +50,35 @@ describe('extractImages', () => {
 	});
 });
 
+describe('ImageKit transforms in rendered HTML', () => {
+	const CDN = 'https://ik.imagekit.io/sts/storage/v1/object/public/images';
+
+	it('applies per-role transforms to gallery main/thumb and data-full-src', () => {
+		const html = renderGallery(`![one](${CDN}/a.png)\n![two](${CDN}/b.png)`);
+		// main image: post-width transform
+		expect(html).toContain(`src="${CDN}/a.png?tr=w-1200" alt="one"`);
+		// thumbnail <img>: square crop transform
+		expect(html).toContain(`src="${CDN}/b.png?tr=w-300,h-300" alt=""`);
+		// thumb carries the post-size variant for the client main-swap
+		expect(html).toContain(`data-full-src="${CDN}/b.png?tr=w-1200"`);
+	});
+
+	it('inline (non-gallery) images get the post-width transform via parsePostContent', () => {
+		const html = parsePostContent(`![x](${CDN}/x.png)`);
+		expect(html).toContain(`src="${CDN}/x.png?tr=w-1200"`);
+	});
+
+	it('gallery images are not double-transformed by the inline walkTokens path', () => {
+		// Directive bodies are raw strings on the token, so walkTokens must
+		// not see gallery images: one gallery image yields exactly three
+		// tr= params (main img, data-full-src, thumb img), never stacked.
+		const html = parsePostContent(`:::gallery\n![a](${CDN}/a.png)\n:::`);
+		const trCount = (html.match(/tr=/g) ?? []).length;
+		expect(trCount).toBe(3); // main + data-full-src + thumb, no duplicates
+		expect(html).not.toContain('&tr=');
+	});
+});
+
 describe('renderGallery', () => {
 	it('marks the first image active in main and thumbs', () => {
 		const html = renderGallery('![one](/a.png)\n![two](/b.png)\n![three](/c.png)');

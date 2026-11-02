@@ -19,10 +19,6 @@ vi.mock('$lib/server/posts', () => ({
 	getContentStore: () => 'git'
 }));
 
-vi.mock('$lib/server/supabase-url-resolver', () => ({
-	replaceSupabaseUrls: async (url: string) => url
-}));
-
 vi.mock('$lib/logging', () => ({
 	logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn() }
 }));

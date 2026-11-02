@@ -7,6 +7,11 @@
  * on JavaScript being present to see the images.
  */
 import { marked } from 'marked';
+import {
+	withImageKitTransform,
+	POST_IMAGE_TRANSFORM,
+	THUMB_IMAGE_TRANSFORM
+} from '../image-urls';
 
 export interface GalleryImage {
 	href: string;
@@ -51,18 +56,24 @@ export function renderGallery(body: string): string {
 		return `<div class="directive directive-plain" data-directive="gallery">${String(marked.parse(body)).trim()}</div>`;
 	}
 
+	// ImageKit URLs get per-context transforms: main/large at post width,
+	// thumbnails as small squares. `data-full-src` carries the large variant
+	// so the client thumb-swap shows full quality, not the tiny thumbnail
+	// (client.ts falls back to the thumb's own src for non-ImageKit images).
+	// Non-ImageKit URLs (git /media paths, external) pass through unchanged.
 	const [first, ...rest] = images;
-	const mainImg = `<img src="${escapeAttr(first.href)}" alt="${escapeAttr(first.alt)}" loading="lazy">`;
+	const mainImg = `<img src="${escapeAttr(withImageKitTransform(first.href, POST_IMAGE_TRANSFORM))}" alt="${escapeAttr(first.alt)}" loading="lazy">`;
 
 	const thumbs = [first, ...rest]
 		.map((img, i) => {
 			const active = i === 0 ? ' is-active' : '';
 			const current = i === 0 ? ' aria-current="true"' : '';
 			const label = `Show image ${i + 1}${img.alt ? `: ${escapeAttr(img.alt)}` : ''}`;
+			const fullSrc = escapeAttr(withImageKitTransform(img.href, POST_IMAGE_TRANSFORM));
 			return (
 				`<button type="button" class="gallery-thumb${active}" data-index="${i}" ` +
-				`data-alt="${escapeAttr(img.alt)}" aria-label="${label}"${current}>` +
-				`<img src="${escapeAttr(img.href)}" alt="" loading="lazy"></button>`
+				`data-alt="${escapeAttr(img.alt)}" data-full-src="${fullSrc}" aria-label="${label}"${current}>` +
+				`<img src="${escapeAttr(withImageKitTransform(img.href, THUMB_IMAGE_TRANSFORM))}" alt="" loading="lazy"></button>`
 			);
 		})
 		.join('');
