@@ -36,8 +36,12 @@ function activateGalleryThumb(directiveEl: HTMLElement, thumb: HTMLElement): voi
 		if (isActive) {
 			thumbs[i].setAttribute('aria-current', 'true');
 			if (mainImg) {
+				// Prefer data-full-src: the thumb <img> is a small ImageKit
+				// transform (w-300), so swapping its src would show a blurry
+				// main image. The renderer puts the post-size variant here.
 				const thumbImg = thumbs[i].querySelector('img');
-				if (thumbImg) mainImg.src = thumbImg.src;
+				const full = thumb.dataset.fullSrc || thumbImg?.src;
+				if (full) mainImg.src = full;
 				mainImg.alt = thumb.dataset.alt ?? '';
 			}
 		} else {

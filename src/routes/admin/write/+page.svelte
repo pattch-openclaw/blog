@@ -70,7 +70,8 @@
 	let galleryMarkdown = $derived(buildGalleryMarkdown(galleryImages));
 
 	// Folder tree mirroring /admin/media: client-side split of `rel` paths.
-	// Previews are already signed in load(), so no lazy thumbnail fetch here.
+	// Previews are already rewritten to the ImageKit CDN in load(), so no
+	// lazy thumbnail fetch here.
 	let galleryTree = $derived(buildFolderTree((data?.images ?? []).map((i) => i.rel)));
 	let imagesByRel = $derived(new Map((data?.images ?? []).map((i) => [i.rel, i])));
 	let galleryExpanded = $state<Record<string, boolean>>({ '': true });

@@ -23,6 +23,7 @@
  */
 import { Marked, marked, type Tokens } from 'marked';
 import { renderGallery } from './gallery';
+import { withImageKitTransform, POST_IMAGE_TRANSFORM } from '../image-urls';
 
 /** Renderer for one directive's body. Must return complete static HTML. */
 export type DirectiveRenderer = (body: string) => string;
@@ -78,7 +79,22 @@ function renderFallback(body: string): string {
  * directive extension and keeps rendering deterministic.
  */
 const postMarked = new Marked();
-postMarked.use({ extensions: [directiveExtension] });
+postMarked.use({
+	extensions: [directiveExtension],
+	/**
+	 * Inline (non-gallery) images displayed at post-body size get the
+	 * max-width ImageKit transform. Directive bodies are raw strings on their
+	 * token, so walkTokens never reaches gallery images — the gallery
+	 * renderer applies its own per-role transforms (main w-1200 / thumb
+	 * w-300,h-300). No-ops for non-ImageKit URLs.
+	 */
+	walkTokens(token) {
+		const img = token as Tokens.Generic;
+		if (img.type === 'image' && typeof img.href === 'string') {
+			img.href = withImageKitTransform(img.href, POST_IMAGE_TRANSFORM);
+		}
+	}
+});
 
 /** Parse blog post markdown (with directive support) into HTML. */
 export function parsePostContent(markdown: string): string {

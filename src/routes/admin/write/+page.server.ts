@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { getStore, getWriteStore, getPosts, getAllTags, getContentStore, getMediaStore } from '$lib/server/posts';
-import { replaceSupabaseUrls } from '$lib/server/supabase-url-resolver';
+import { rewriteToImageKit } from '$lib/server/imagekit';
 import { bucketRelPath } from '$lib/media-paths';
 import { logger } from '$lib/logging';
 
@@ -10,22 +10,22 @@ export const load = async ({ url }) => {
 	// Get images from MediaStore (works for both git and supabase).
 	// `rel` (bucket-relative path) powers the client-side folder tree in the
 	// gallery builder; `storage_path` is kept for lazy per-folder preview
-	// signing via POST /admin/media/thumbs.
+	// signing via POST /admin/media/thumbs. Previews go through the ImageKit
+	// CDN (public bucket) — no URL signing; no-op when IMAGEKIT_URL is unset
+	// or for git-store /media paths.
 	let images: Array<{ filename: string; public_url: string; preview_url?: string; rel: string; storage_path: string }> = [];
 	try {
 		const mediaStore = getMediaStore();
 		const mediaEntries = await mediaStore.listMedia();
 		const imageEntries = mediaEntries.filter(e => e.bucket === 'images');
 		
-		images = await Promise.all(
-			imageEntries.map(async e => ({ 
-				filename: e.filename, 
-				public_url: e.public_url,
-				preview_url: await replaceSupabaseUrls(e.public_url),
-				rel: bucketRelPath(e.path, 'images'),
-				storage_path: e.path
-			}))
-		);
+		images = imageEntries.map(e => ({ 
+			filename: e.filename, 
+			public_url: e.public_url,
+			preview_url: rewriteToImageKit(e.public_url),
+			rel: bucketRelPath(e.path, 'images'),
+			storage_path: e.path
+		}));
 		images.sort((a, b) => a.rel.localeCompare(b.rel));
 	} catch (e) {
 		logger.error('Failed to load images for picker', e);

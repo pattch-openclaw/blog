@@ -3,7 +3,6 @@ import type { Actions, PageServerLoad } from './$types';
 import { GitPostStore } from '$lib/server/git-post-store';
 import type { Post } from '$lib/types';
 import { logger } from '$lib/logging';
-import { replaceSupabaseUrls } from '$lib/server/supabase-url-resolver';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -136,8 +135,9 @@ const migratePostToSupabase = async (slug: string): Promise<{ success: boolean; 
 		newContent = newContent.replaceAll(oldPath, newUrl);
 	}
 
-	// 5b. Replace Supabase public Storage URLs with signed URLs
-	newContent = await replaceSupabaseUrls(newContent);
+	// 5b. Stored content keeps plain Supabase public URLs (the images bucket
+	// is public). Delivery rewrites them to the ImageKit CDN at render time
+	// (src/lib/server/imagekit.ts), so nothing to sign or rewrite here.
 
 	// 6. Update the post with the modified content
 	try {

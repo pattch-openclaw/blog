@@ -175,23 +175,22 @@ tags:                 # YAML array or comma-separated, empty if missing
 - **Separate Sandbox DB from Staging/Prod** — Currently Sandbox, Staging, and Prod all share the same Supabase database. The goal is to have a dedicated database for Sandbox while Staging and Prod share another (to save costs). This would provide cleaner isolation during testing.
 - **SQLite Implementation** — Add a SQLite-backed datastore as an alternative to Supabase. This would allow local development without external dependencies and make the project more portable.
 
-### Image Optimization (ImageKit Integration Plan)
+### Image Optimization (ImageKit CDN) — ✅ Implemented 2026-11-01
 **Problem**: Serving high-resolution images directly from Supabase consumes excessive egress bandwidth, hitting free-tier limits.
-**Solution**: Integrate ImageKit.io as a CDN and image optimization proxy in front of the Supabase Storage buckets.
+**Solution**: ImageKit.io fronts Supabase Storage as a CDN + image optimization proxy, caching resized variants per URL.
 
-**Integration & Setup Steps**:
-1. **ImageKit Configuration**: 
-   - Create an ImageKit account and configure a new "Origin" (Web Folder type) pointing to the base Supabase Storage URL (e.g., `https://[SUPABASE_PROJECT_ID].supabase.co/storage/v1/object/public/`).
-   - Retrieve your ImageKit URL endpoint (e.g., `https://ik.imagekit.io/[your_imagekit_id]/`).
-2. **Secrets / Env Management**:
-   - Add `IMAGEKIT_URL` to the shared `.blog-secrets` file. 
-   - *Note:* Since the Supabase bucket is public, private ImageKit API keys are not required for read-only proxying and resizing, keeping the security surface minimal.
-   - Run `pm2 restart sams-blog-prod sams-blog-staging sams-blog-sandbox` to inject the new environment variable.
-3. **Application Linking (Code Changes)**:
-   - Update the blog's image rendering logic (specifically the Markdown parser and `:::gallery` directive handlers). When generating `<img>` tags, replace the base Supabase URL with the ImageKit URL.
-   - Append transformation parameters dynamically based on the display context:
-     - **Thumbnails (Galleries):** Append `?tr=w-300,h-300` for fast-loading grid previews.
-     - **Large (Blog Posts):** Append `?tr=w-1200` to constrain massive native images to a sensible max width for the post body.
+**How it works (implemented)**:
+- The `images` bucket is **public**; short-lived signed URLs are gone (`supabase-url-resolver.ts` deleted). Reader-facing image delivery needs no secrets.
+- **Origin config**: the ImageKit origin maps the Supabase *project root* (`https://[project].supabase.co/`), so CDN URLs keep the full storage path: `https://ik.imagekit.io/sts/storage/v1/object/public/images/...`.
+- **URL rewrite** (`src/lib/server/imagekit.ts`): at render time the blog rewrites `*.supabase.co/storage/v1/object/{public,sign}/...` URLs in post content (and admin picker previews) to the endpoint from `IMAGEKIT_URL`, stripping legacy `?token=*** params are stripped). Pure string rewrite, no network; **no-op when `IMAGEKIT_URL` is unset** (plain public URLs still work).
+- **Transforms** (`src/lib/image-urls.ts`, applied by the renderers):
+  - Inline post-body images: `?tr=w-1200` (via marked `walkTokens`).
+  - Gallery main image: `?tr=w-1200`; thumbnails: `?tr=w-300,h-300`, with `data-full-src` carrying the large variant so the client thumb-swap stays sharp (`directives/client.ts`).
+  - Non-ImageKit URLs (git `/media/...` paths, external images) pass through untouched.
+- **Deploy**: `IMAGEKIT_URL` lives in the shared `.blog-secrets` file and is injected via `ecosystem.config.cjs` into all three PM2 apps; `pm2 restart sams-blog-prod sams-blog-staging sams-blog-sandbox` after changing it.
+- Admin media-page lazy thumbnails still sign per-folder (`/admin/media/thumbs`) — harmless on a public bucket; can be simplified later.
+
+*Note:* Since the bucket is public, private ImageKit API keys are not required for read-only proxying and resizing, keeping the security surface minimal. Trade-off: anyone with an exact Supabase URL can bypass the CDN, so unpublished images are exposed to anyone who guesses their path.
 
 ### Feature Development (Current Priority)
 
