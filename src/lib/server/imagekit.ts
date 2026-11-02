@@ -33,9 +33,11 @@ export function getImageKitEndpoint(): string | null {
  */
 export function rewriteToImageKit(content: string): string {
 	const endpoint = getImageKitEndpoint();
+
 	if (!endpoint) return content;
+
 	return content.replace(
-		/https:\/\/[a-z0-9.-]+\.supabase\.co\/storage\/v1\/object\/(?:public|sign)\/([^\s"'()<>\]?]+)(?:\?[^\s"'()<>\]]*)?/gi,
-		(_match, path: string) => `${endpoint}/storage/v1/object/public/${path}`
+		/https:\/\/[a-z0-9.-]+\.supabase\.co\/storage\/v1\/object\/(?:public|sign)\/images\/images\/([^\s"'()<>\]?]+)(?:\?[^\s"'()<>\]]*)?/gi,
+		(_match, path: string) => `${endpoint}/${path}`
 	);
 }
