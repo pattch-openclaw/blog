@@ -37,7 +37,7 @@ export function rewriteToImageKit(content: string): string {
 	if (!endpoint) return content;
 
 	return content.replace(
-		/https:\/\/[a-z0-9.-]+\.supabase\.co\/storage\/v1\/object\/(?:public|sign)\/images\/images\/([^\s"'()<>\]?]+)(?:\?[^\s"'()<>\]]*)?/gi,
+		/https:\/\/[a-z0-9.-]+\.supabase\.co\/storage\/v1\/object\/(?:public|sign)\/images\/(?:images\/)?([^\s"'()<>\]?]+)(?:\?[^\s"'()<>\]]*)?/gi,
 		(_match, path: string) => `${endpoint}/${path}`
 	);
 }

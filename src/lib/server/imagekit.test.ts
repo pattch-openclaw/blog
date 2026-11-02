@@ -69,4 +69,17 @@ describe('rewriteToImageKit', () => {
 		expect(out).toContain(`${EP}/nested/b.png "t"`);
 		expect(out).not.toContain('supabase.co');
 	});
+
+	// TODO: It seems the supabase URLs we're storing in markdown aren't exact URLs to begin with.
+	// Eventually we should fix that and just point directly to the supabase URL or image kit URL instead.
+	it('Accepts exact supabase URLs as well as single bucket formatted URLs', () => {
+		process.env.IMAGEKIT_URL = EP;
+		const md =
+			'Before ![a](https://p1.supabase.co/storage/v1/object/public/images/images/a.png) mid\n\n' +
+			'![b](https://p2.supabase.co/storage/v1/object/public/images/b.png "t")\n';
+		const out = rewriteToImageKit(md);
+		expect(out).toContain(`${EP}/a.png`);
+		expect(out).toContain(`${EP}/b.png "t"`);
+		expect(out).not.toContain('supabase.co');
+	});
 });
