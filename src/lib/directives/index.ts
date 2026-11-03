@@ -23,7 +23,9 @@
  */
 import { Marked, marked, type Tokens } from 'marked';
 import { renderGallery } from './gallery';
-import { withImageKitTransform, POST_IMAGE_TRANSFORM } from '../image-urls';
+import { escapeAttr, fullSizeLink } from './html';
+import { walkTokenTree } from './token-tree';
+import { withImageKitTransform, fullSizeUrl, POST_IMAGE_TRANSFORM } from '../image-urls';
 
 /** Renderer for one directive's body. Must return complete static HTML. */
 export type DirectiveRenderer = (body: string) => string;
@@ -82,19 +84,53 @@ const postMarked = new Marked();
 postMarked.use({
 	extensions: [directiveExtension],
 	/**
-	 * Inline (non-gallery) images displayed at post-body size get the
-	 * max-width ImageKit transform. Directive bodies are raw strings on their
-	 * token, so walkTokens never reaches gallery images — the gallery
-	 * renderer applies its own per-role transforms (main w-1200 / thumb
-	 * w-300,h-300). No-ops for non-ImageKit URLs.
+	 * Tag images that sit inside a link so the image renderer can leave them
+	 * alone. marked walks the whole token tree before rendering any of it, and
+	 * descends parent-before-child, but walking the link's own subtree keeps the
+	 * flag independent of that visit order.
 	 */
 	walkTokens(token) {
-		const img = token as Tokens.Generic;
-		if (img.type === 'image' && typeof img.href === 'string') {
-			img.href = withImageKitTransform(img.href, POST_IMAGE_TRANSFORM);
+		const link = token as Tokens.Generic;
+		if (link.type !== 'link' || !Array.isArray(link.tokens)) return;
+		walkTokenTree(link.tokens, (child) => {
+			if (child.type === 'image') (child as ImageToken).inAuthorLink = true;
+		});
+	},
+	/**
+	 * Post-body (non-gallery) images: rendered at post width and linked to the
+	 * full-size variant. Directive bodies are raw strings on their token, so
+	 * gallery images never reach this renderer — the gallery renderer applies its
+	 * own per-role transforms (main w-1200 / thumb w-300,h-300 / full-size
+	 * link). Transforms are no-ops for non-ImageKit URLs (git /media paths,
+	 * external images), which therefore link to their own original file.
+	 */
+	renderer: {
+		image(token) {
+			const img = token as ImageToken;
+			if (typeof img.href !== 'string' || img.href === '') return false;
+			const attrs = [
+				`src="${escapeAttr(withImageKitTransform(img.href, POST_IMAGE_TRANSFORM))}"`,
+				`alt="${escapeAttr(img.text ?? '')}"`,
+				'loading="lazy"'
+			];
+			if (img.title) attrs.push(`title="${escapeAttr(img.title)}"`);
+			const imageHtml = `<img ${attrs.join(' ')}>`;
+			return img.inAuthorLink ? imageHtml : fullSizeLink(imageHtml, fullSizeUrl(img.href));
 		}
 	}
 });
+
+/**
+ * Post-body image markup: rendered at post width and wrapped in a link to the
+ * full-size variant, so clicking an image opens it at full resolution in a new
+ * tab (see `fullSizeLink` / `POST_IMAGE_TRANSFORM` / `FULL_IMAGE_TRANSFORM`).
+ *
+ * marked hands renderers a token with no parent context, so an image the author
+ * wrapped in their own link (`[![alt](img.png)](https://…)` ) is tagged by
+ * `walkTokens` before any rendering happens; the image renderer then emits the
+ * bare `<img>` so the author's link target wins and anchors never nest.
+ */
+type ImageToken = Tokens.Image & { inAuthorLink?: true };
 
 /** Parse blog post markdown (with directive support) into HTML. */
 export function parsePostContent(markdown: string): string {

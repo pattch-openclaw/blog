@@ -17,6 +17,16 @@ export const POST_IMAGE_TRANSFORM = 'w-1200';
 /** Cropped square for gallery thumbnails. */
 export const THUMB_IMAGE_TRANSFORM = 'w-300,h-300';
 
+/**
+ * Full-size variant, served when a reader clicks an image to look at it
+ * closer (see `fullSizeLink`). An empty transform means no `tr=` param at all,
+ * so ImageKit returns the original file from Supabase — that is still
+ * CDN-cached like any other variant, so the Supabase origin is only fetched
+ * once per edge-cache expiry. Set this to e.g. 'w-2400' to cap very large
+ * originals while keeping a view much bigger than the in-post w-1200 render.
+ */
+export const FULL_IMAGE_TRANSFORM = '';
+
 /** True if the URL points at an ImageKit CDN endpoint (ik.imagekit.io). */
 export function isImageKitUrl(url: string): boolean {
 	try {
@@ -36,4 +46,32 @@ export function withImageKitTransform(url: string, transform: string): string {
 	if (!transform || url.includes('tr=') || !isImageKitUrl(url)) return url;
 	const sep = url.includes('?') ? '&' : '?';
 	return `${url}${sep}tr=${transform}`;
+}
+
+/**
+ * The full-size URL a click-through link points at: an ImageKit URL with no
+ * `tr=` param, which is the original file (or `FULL_IMAGE_TRANSFORM` when that
+ * knob is set to a capped variant). Non-ImageKit URLs (git `/media/...`
+ * paths, external images) are returned unchanged — their original is whatever
+ * the URL already points at.
+ *
+ * Post content carries bare CDN URLs (the server rewrite drops queries), so
+ * usually there is nothing to remove and the URL is returned byte-for-byte.
+ * Stripping is explicit anyway so "full size" cannot silently degrade to a
+ * hand-written or upstream-baked transform in content.
+ */
+export function fullSizeUrl(url: string): string {
+	// A capped variant is requested: that is the "full size" we serve, and it
+	// behaves like any other transform (idempotent, no-op off-CDN).
+	if (FULL_IMAGE_TRANSFORM) return withImageKitTransform(url, FULL_IMAGE_TRANSFORM);
+	if (!isImageKitUrl(url)) return url;
+	try {
+		const parsed = new URL(url);
+		if (!parsed.searchParams.has('tr')) return url;
+		parsed.searchParams.delete('tr');
+		const query = parsed.searchParams.toString();
+		return query ? `${parsed.origin}${parsed.pathname}?${query}` : `${parsed.origin}${parsed.pathname}`;
+	} catch {
+		return url;
+	}
 }

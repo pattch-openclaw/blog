@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parsePostContent } from './index';
-import { renderGallery, extractImages, escapeAttr } from './gallery';
+import { renderGallery, extractImages } from './gallery';
+import { escapeAttr } from './html';
 
 describe('directive tokenizer', () => {
 	it('renders a recognized directive via its renderer', () => {
@@ -59,8 +60,10 @@ describe('ImageKit transforms in rendered HTML', () => {
 		expect(html).toContain(`src="${CDN}/a.png?tr=w-1200" alt="one"`);
 		// thumbnail <img>: square crop transform
 		expect(html).toContain(`src="${CDN}/b.png?tr=w-300,h-300" alt=""`);
-		// thumb carries the post-size variant for the client main-swap
-		expect(html).toContain(`data-full-src="${CDN}/b.png?tr=w-1200"`);
+		// thumb carries both variants the client needs: post-size for the main
+		// viewer, untransformed original for the click-through link
+		expect(html).toContain(`data-main-src="${CDN}/b.png?tr=w-1200"`);
+		expect(html).toContain(`data-full-src="${CDN}/b.png"`);
 	});
 
 	it('inline (non-gallery) images get the post-width transform via parsePostContent', () => {
@@ -68,14 +71,69 @@ describe('ImageKit transforms in rendered HTML', () => {
 		expect(html).toContain(`src="${CDN}/x.png?tr=w-1200"`);
 	});
 
-	it('gallery images are not double-transformed by the inline walkTokens path', () => {
-		// Directive bodies are raw strings on the token, so walkTokens must
-		// not see gallery images: one gallery image yields exactly three
-		// tr= params (main img, data-full-src, thumb img), never stacked.
+	it('gallery images are not double-transformed by the inline image renderer', () => {
+		// Directive bodies are raw strings on the token, so the postMarked image
+		// renderer never sees gallery images: one gallery image yields exactly
+		// three tr= params (main img, thumb img, data-main-src) — the full-size
+		// href and data-full-src stay bare — and they are never stacked.
 		const html = parsePostContent(`:::gallery\n![a](${CDN}/a.png)\n:::`);
 		const trCount = (html.match(/tr=/g) ?? []).length;
-		expect(trCount).toBe(3); // main + data-full-src + thumb, no duplicates
+		expect(trCount).toBe(3); // main + thumb + data-main-src, no duplicates
 		expect(html).not.toContain('&tr=');
+	});
+});
+
+describe('full-size click-through links', () => {
+	const CDN = 'https://ik.imagekit.io/sts/storage/v1/object/public/images';
+
+	it('wraps a post-body image in a link to the same URL with no tr= param', () => {
+		const html = parsePostContent(`![x](${CDN}/x.png)`);
+		expect(html.match(/<a class="image-full"[^>]*>/)?.[0]).toBe(
+			`<a class="image-full" href="${CDN}/x.png" target="_blank" rel="noopener">`
+		);
+		// the picture itself still renders at post width
+		expect(html).toContain(`src="${CDN}/x.png?tr=w-1200"`);
+		// …and the link closes around it, not after it
+		expect(html).toContain('</a></p>');
+	});
+
+	it('keeps an author-written link target and never nests anchors', () => {
+		const html = parsePostContent(`[![x](${CDN}/x.png)](https://example.com/dest)`);
+		expect(html).toContain('<a href="https://example.com/dest">');
+		expect(html).not.toContain('image-full');
+		expect(html.match(/<a /g)?.length).toBe(1);
+		// still rendered at post width
+		expect(html).toContain(`src="${CDN}/x.png?tr=w-1200"`);
+	});
+
+	it('links the gallery main image to the full-size original', () => {
+		const html = renderGallery(`![one](${CDN}/a.png)\n![two](${CDN}/b.png)`);
+		expect(html).toContain(
+			`<div class="gallery-main"><a class="image-full" href="${CDN}/a.png" target="_blank" rel="noopener">`
+		);
+		// every thumb advertises, in order, the full-size URL the client handler
+		// (./client.ts) repoints that link to when the thumb is activated
+		expect(html.match(/data-full-src="[^"]*"/g)).toEqual([
+			`data-full-src="${CDN}/a.png"`,
+			`data-full-src="${CDN}/b.png"`
+		]);
+	});
+
+	it('non-ImageKit images link to their own original file, untransformed', () => {
+		const html = parsePostContent('![x](/media/images/x.png)');
+		expect(html).toContain('<a class="image-full" href="/media/images/x.png" target="_blank" rel="noopener">');
+		expect(html).toContain('<img src="/media/images/x.png"');
+		expect(html).not.toContain('tr=');
+	});
+
+	it('preserves a title attribute on the image', () => {
+		const html = parsePostContent(`![x](${CDN}/x.png "hi")`);
+		expect(html).toContain('title="hi"');
+	});
+
+	it('escapes quote-hostile URLs in the link href', () => {
+		const html = parsePostContent('![a](/x.png?a=1&b="2")');
+		expect(html.match(/href="[^"]*"/)?.[0]).toBe('href="/x.png?a=1&amp;b=&quot;2&quot;"');
 	});
 });
 
@@ -85,8 +143,10 @@ describe('renderGallery', () => {
 		// exactly one active thumb
 		expect(html.match(/gallery-thumb is-active/g)?.length).toBe(1);
 		expect(html).toContain('aria-current="true"');
-		// main image is the first
-		expect(html).toContain('<div class="gallery-main"><img src="/a.png" alt="one"');
+		// main image is the first, wrapped in its full-size link
+		expect(html).toContain(
+			'<div class="gallery-main"><a class="image-full" href="/a.png" target="_blank" rel="noopener"><img src="/a.png" alt="one"'
+		);
 		// three thumbs
 		// [ "] guard so the .gallery-thumbs container doesn't also match
 		expect(html.match(/class="gallery-thumb[ "]/g)?.length).toBe(3);

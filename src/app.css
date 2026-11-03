@@ -103,6 +103,41 @@ pre code {
 	background-color: #e03600;
 	text-decoration: none;
 }
+/* Reader-facing images that click through to their full-size original
+   (`fullSizeLink` in src/lib/directives/html.ts) — post-body images and the
+   main image of a gallery. Rules live here rather than in the per-page .prose
+   blocks so post pages and the admin live preview render identically.
+
+   `display: inline-block` keeps an image exactly where it renders today (no
+   reflow of surrounding text) while making the anchor a box the cursor and
+   focus ring can apply to; `line-height: 0` plus a block-level img removes the
+   baseline gap the anchor would otherwise add underneath. The underline from
+   the global `a:hover` rule would draw a line across the picture, and it has to
+   be cancelled on :hover as well — `a:hover` (0,1,1) outranks a lone `.image-full`
+   (0,1,0) declaration. The zoom cursor is the affordance. */
+.image-full {
+	display: inline-block;
+	max-width: 100%;
+	line-height: 0;
+	border-radius: 6px;
+	cursor: zoom-in;
+	text-decoration: none;
+}
+
+.image-full:hover {
+	text-decoration: none;
+}
+
+.image-full img {
+	display: block;
+	max-width: 100%;
+}
+
+.image-full:focus-visible {
+	outline: 2px solid var(--link-color);
+	outline-offset: 2px;
+}
+
 /* Markdown directives (:::gallery etc.) — styles live here so directive
    HTML renders identically in post pages and the admin live preview. */
 .directive-gallery {

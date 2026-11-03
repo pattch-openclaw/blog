@@ -12,7 +12,11 @@
  * one entry here (plus its renderer in ./index.ts) — never a new listener.
  *
  * Handlers only ever *change* state; all directives render complete static
- * HTML server-side, so content works fine without JavaScript.
+ * HTML server-side, so content works fine without JavaScript. That includes the
+ * full-size click-through link the renderers put around images (`fullSizeLink`
+ * in ./html.ts): it is a plain anchor the browser follows on its own, no script
+ * involved. Handlers that swap an image (gallery thumbnails) are responsible for
+ * keeping that link pointed at whatever is currently on screen.
  */
 
 /** Click handler for one directive type. */
@@ -21,6 +25,29 @@ export type DirectiveClickHandler = (
 	target: HTMLElement,
 	event: MouseEvent
 ) => void;
+
+/**
+ * The two URLs one thumbnail implies, decoupled from the DOM so the fallback
+ * rules stay unit-testable.
+ *
+ * The renderer carries both on each thumb (see ./gallery.ts):
+ *   data-main-src — post-size variant (w-1200), swapped into the visible viewer
+ *   data-full-src — untransformed original, for the click-through link
+ *
+ * Keeping them apart is the point of the feature: the main viewer must never
+ * load the full original (that is the Supabase egress this exists to avoid),
+ * and the click-through must never open the w-1200 render. Non-ImageKit markup
+ * (git `/media/...`) carries one URL in both attributes, and older markup may
+ * carry neither — the thumb's own src is then the only right answer.
+ */
+export function galleryThumbSources(
+	mainSrc: string | undefined,
+	fullSrc: string | undefined,
+	thumbImgSrc: string
+): { mainSrc: string; fullHref: string } {
+	const main = mainSrc || thumbImgSrc;
+	return { mainSrc: main, fullHref: fullSrc || main };
+}
 
 /** Activate one gallery thumbnail: move `.is-active` and swap the main image. */
 function activateGalleryThumb(directiveEl: HTMLElement, thumb: HTMLElement): void {
@@ -36,13 +63,21 @@ function activateGalleryThumb(directiveEl: HTMLElement, thumb: HTMLElement): voi
 		if (isActive) {
 			thumbs[i].setAttribute('aria-current', 'true');
 			if (mainImg) {
-				// Prefer data-full-src: the thumb <img> is a small ImageKit
-				// transform (w-300), so swapping its src would show a blurry
-				// main image. The renderer puts the post-size variant here.
-				const thumbImg = thumbs[i].querySelector('img');
-				const full = thumb.dataset.fullSrc || thumbImg?.src;
-				if (full) mainImg.src = full;
-				mainImg.alt = thumb.dataset.alt ?? '';
+				const active = thumbs[i];
+				const thumbImg = active.querySelector('img');
+				const sources = galleryThumbSources(
+					active.dataset.mainSrc,
+					active.dataset.fullSrc,
+					thumbImg?.src ?? ''
+				);
+				// The visible viewer always gets the post-size variant — never the
+				// full original, and never the w-300 crop the thumb itself shows.
+				if (sources.mainSrc) mainImg.src = sources.mainSrc;
+				// …and the full-size link wrapped around it follows, so clicking
+				// the main image opens what the reader is actually looking at.
+				const fullLink = mainImg.closest('a.image-full');
+				if (fullLink && sources.fullHref) fullLink.setAttribute('href', sources.fullHref);
+				mainImg.alt = active.dataset.alt ?? '';
 			}
 		} else {
 			thumbs[i].removeAttribute('aria-current');
@@ -57,7 +92,10 @@ function activateGalleryThumb(directiveEl: HTMLElement, thumb: HTMLElement): voi
 export const directiveHandlers: Record<string, DirectiveClickHandler> = {
 	gallery(directiveEl, target) {
 		const thumb = target.closest<HTMLElement>('.gallery-thumb');
-		// Only thumb clicks do anything; clicks elsewhere in the gallery are inert.
+		// Only thumb clicks are handled here. A click on the main image needs
+		// nothing from us — the browser follows the full-size link around it, so
+		// never call preventDefault(), that would break it. Anywhere else in a
+		// gallery is inert.
 		if (!thumb || thumb.closest('[data-directive]') !== directiveEl) return;
 		activateGalleryThumb(directiveEl, thumb);
 	}
