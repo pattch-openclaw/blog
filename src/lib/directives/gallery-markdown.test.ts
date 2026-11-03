@@ -26,8 +26,11 @@ describe('buildGalleryMarkdown', () => {
 		expect(html).toContain('data-directive="gallery"');
 		// [ "] guard so the .gallery-thumbs container doesn't also match
 		expect(html.match(/class="gallery-thumb[ "]/g)?.length).toBe(2);
-		// click order preserved: first selected becomes the active main image
-		expect(html).toContain('<div class="gallery-main"><img src="/media/images/one.png"');
+		// click order preserved: first selected becomes the active main image,
+		// wrapped in a link to its own full-size URL (see directives/client.ts)
+		expect(html).toContain(
+			'<div class="gallery-main"><a class="image-full" href="/media/images/one.png" target="_blank" rel="noopener"><img src="/media/images/one.png"'
+		);
 	});
 
 	it('single image is still valid gallery markdown', () => {

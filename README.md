@@ -25,7 +25,7 @@ This repository contains the source code for my personal blog. It serves as a pl
 This repository relies on automated testing to ensure the blog's UI and markdown logic don't break during deployments. 
 
 The stack includes:
-* **Vitest**: Used for unit tests, parsing the Markdown frontmatter correctly, and checking data loaders.
+* **Vitest**: Used for unit tests, parsing the Markdown frontmatter correctly, and checking data loaders. Individual files opt into a real DOM with a `// @vitest-environment jsdom` docblock (jsdom) when the thing under test needs one — e.g. `src/lib/directives/client.test.ts`, which mounts rendered post HTML and clicks it, covering renderer ⇄ client-handler contracts that pure string tests can't reach.
 * **Playwright**: Used for End-to-End (E2E) UI testing, validating the 404 pages, layout integrity, and Visual Regression (Screendiff) testing for the homepage.
 * **Husky Git Hooks**: Automatically runs the full test suite (`npm run test` — both Vitest unit + all Playwright E2E including screendiff) before every `git push`.
 * **CI/CD Pipeline**: Runs unit tests and non-screendiff E2E tests on the home server before deploying. If any test fails on `main`, the deployment halts and PM2 is not reloaded.
@@ -119,7 +119,7 @@ Every time a commit is pushed to the `main` branch, the self-hosted runner will 
 
 ## Directives & Image Galleries (2026-09-22)
 - **Block directives in post markdown:** `:::name ... :::` fences render custom HTML components via a marked extension (`src/lib/directives/`). Registry-driven: adding a directive = one renderer in `directiveRenderers` (`src/lib/directives/index.ts`) plus (if interactive) one handler in `directiveHandlers` (`src/lib/directives/client.ts`). Unclosed directives and directive syntax inside code fences degrade to plain markdown; unknown names render their body as markdown in a wrapper. No schema changes — directives live in the existing post content string, and Supabase signed-URL replacement runs on raw markdown before parsing so gallery image URLs sign normally.
-- **`:::gallery` directive:** body is markdown image lines; renders one large main image with a thumbnail strip below. First image is active in the static HTML (no-JS friendly); clicking a thumbnail swaps the main image and moves `is-active`/`aria-current`. Example:
+- **`:::gallery` directive:** body is markdown image lines; renders one large main image with a thumbnail strip below. First image is active in the static HTML (no-JS friendly); clicking a thumbnail swaps the main image and moves `is-active`/`aria-current`, and clicking the main image opens its full-size original in a new tab (see the ImageKit section below). Example:
 
   ```markdown
   :::gallery
@@ -128,7 +128,8 @@ Every time a commit is pushed to the `main` branch, the self-hosted runner will 
   :::
   ```
 
-- **Client wiring (agreed design):** a single Svelte action `use:directives` on the prose container attaches one delegated click listener per mounted container (removed on destroy) — never per-gallery or global listeners. Applied on the post page and the `/admin/write` live preview. Gallery styles live in `src/app.css` so post pages and admin preview render identically.
+- **Client wiring (agreed design):** a single Svelte action `use:directives` on the prose container attaches one delegated click listener per mounted container (removed on destroy) — never per-gallery or global listeners. Applied on the post page and the `/admin/write` live preview. Gallery styles live in `src/app.css` so post pages and admin preview render identically (as do the `.image-full` styles for full-size click-through links, which apply to post-body images too).
+- **Shared rendering helpers:** `directives/html.ts` (`escapeAttr`, `fullSizeLink`) and `directives/token-tree.ts` (pre-order marked token walk) are used by both the gallery renderer and the post-content image renderer, so every image emits the same markup and the same click-through affordance. `directives/client.ts` exports `galleryThumbSources`, the pure "which URL goes where" decision, unit-tested in jsdom by `directives/client.test.ts`.
 - **Gallery builder on `/admin/write`:** a collapsed “+ Add Gallery” button expands a scrollable thumbnail grid of all uploaded images; tap to toggle selection (click order = gallery order, shown as numbered badges). Generates the `:::gallery` directive markdown (pure helper `buildGalleryMarkdown` in `src/lib/directives/gallery-markdown.ts`) with a copy-to-clipboard field and Clear button, mirroring the existing single-image insert affordance. The live preview renders the copied directive and its thumbnails are clickable (same `use:directives` action).
 
 ## Completed Features (as of 2026-06-16)
@@ -183,10 +184,11 @@ tags:                 # YAML array or comma-separated, empty if missing
 - The `images` bucket is **public**; short-lived signed URLs are gone (`supabase-url-resolver.ts` deleted). Reader-facing image delivery needs no secrets.
 - **Origin config**: the ImageKit origin maps the Supabase *project root* (`https://[project].supabase.co/`), so CDN URLs keep the full storage path: `https://ik.imagekit.io/sts/storage/v1/object/public/images/...`.
 - **URL rewrite** (`src/lib/server/imagekit.ts`): at render time the blog rewrites `*.supabase.co/storage/v1/object/{public,sign}/...` URLs in post content (and admin picker previews) to the endpoint from `IMAGEKIT_URL`, stripping legacy `?token=*** params are stripped). Pure string rewrite, no network; **no-op when `IMAGEKIT_URL` is unset** (plain public URLs still work).
-- **Transforms** (`src/lib/image-urls.ts`, applied by the renderers):
-  - Inline post-body images: `?tr=w-1200` (via marked `walkTokens`).
-  - Gallery main image: `?tr=w-1200`; thumbnails: `?tr=w-300,h-300`, with `data-full-src` carrying the large variant so the client thumb-swap stays sharp (`directives/client.ts`).
-  - Non-ImageKit URLs (git `/media/...` paths, external images) pass through untouched.
+- **Transforms** (`src/lib/image-urls.ts`, applied by the renderers in `src/lib/directives/`):
+  - Inline post-body images: rendered at `?tr=w-1200` by a marked `renderer.image` override on the dedicated `postMarked` instance (a `walkTokens` rewrite used to do this; the renderer is needed because it also builds the link below).
+  - Gallery main image: `?tr=w-1200`; thumbnails: `?tr=w-300,h-300`. Each thumb also carries the two sizes it implies — `data-main-src` (post-size, swapped into the main viewer) and `data-full-src` (original, for the click-through link) — so `directives/client.ts` never puts the full original on screen and never leaves a stale link behind.
+  - Non-ImageKit URLs (git `/media/...` paths, external images) pass through untouched, and link to their own original file.
+- **Click through to full resolution** — ✅ Implemented 2026-11-03: every reader-facing image is wrapped in `<a class="image-full" target="_blank" rel="noopener">` pointing at the **same URL with no `tr=` param**, so clicking an image opens the original file at full size in a new tab (`fullSizeLink` in `directives/html.ts` + `fullSizeUrl` in `image-urls.ts`; `.image-full` is styled in `src/app.css` — zoom cursor, no inherited link underline, focus ring). It is a plain anchor, so it works with JS disabled; the gallery handler's job is only to keep that href pointed at whichever image is currently on screen. Images an author wrapped in their own link (`[![alt](img.png)](https://…)`) are left alone — the author's target wins and anchors never nest. `FULL_IMAGE_TRANSFORM` is the knob for that size: `''` (current) serves the untouched original, which is still edge-cached per URL, so Supabase is fetched once per cache expiry rather than per view; set it to e.g. `w-2400` to cap very large originals.
 - **Deploy**: `IMAGEKIT_URL` lives in the shared `.blog-secrets` file and is injected via `ecosystem.config.cjs` into all three PM2 apps; `pm2 restart sams-blog-prod sams-blog-staging sams-blog-sandbox` after changing it.
 - Admin media-page lazy thumbnails still sign per-folder (`/admin/media/thumbs`) — harmless on a public bucket; can be simplified later.
 

@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
 	isImageKitUrl,
 	withImageKitTransform,
+	fullSizeUrl,
+	FULL_IMAGE_TRANSFORM,
 	POST_IMAGE_TRANSFORM,
 	THUMB_IMAGE_TRANSFORM
 } from './image-urls';
@@ -41,5 +43,45 @@ describe('withImageKitTransform', () => {
 		expect(withImageKitTransform('https://example.com/x.png', POST_IMAGE_TRANSFORM)).toBe(
 			'https://example.com/x.png'
 		);
+	});
+});
+
+describe('fullSizeUrl', () => {
+	const CDN = 'https://ik.imagekit.io/sts/storage/v1/object/public/images';
+
+	it('serves the original by default: full size means no transform at all', () => {
+		// documents the knob in image-urls.ts — set it to 'w-2400' (or any
+		// variant) to cap very large originals instead, and this behavior follows
+		expect(FULL_IMAGE_TRANSFORM).toBe('');
+	});
+
+	it('returns a bare CDN URL byte-for-byte, adding no transform', () => {
+		expect(fullSizeUrl(`${CDN}/x.png`)).toBe(`${CDN}/x.png`);
+	});
+
+	it('strips a transform that is already in the URL', () => {
+		expect(fullSizeUrl(`${CDN}/x.png?tr=w-1200`)).toBe(`${CDN}/x.png`);
+		expect(fullSizeUrl(`${CDN}/x.png?tr=w-1200,h-800`)).toBe(`${CDN}/x.png`);
+	});
+
+	it('keeps unrelated query params when removing the transform', () => {
+		expect(fullSizeUrl(`${CDN}/x.png?v=2&tr=w-1200`)).toBe(`${CDN}/x.png?v=2`);
+	});
+
+	it('only removes a real tr= param, never one that merely contains "tr"', () => {
+		expect(fullSizeUrl(`${CDN}/x.png?extra=1`)).toBe(`${CDN}/x.png?extra=1`);
+		expect(fullSizeUrl(`${CDN}/x.png?country=nz`)).toBe(`${CDN}/x.png?country=nz`);
+	});
+
+	it('non-ImageKit URLs are their own original, and pass through untouched', () => {
+		expect(fullSizeUrl('/media/images/x.png')).toBe('/media/images/x.png');
+		expect(fullSizeUrl('https://example.com/x.png?tr=w-1200')).toBe('https://example.com/x.png?tr=w-1200');
+	});
+
+	it('the rendered link and the rendered src differ only by the transform', () => {
+		// the invariant the renderers rely on: same file, two sizes
+		const bare = `${CDN}/x.png`;
+		expect(withImageKitTransform(fullSizeUrl(bare), POST_IMAGE_TRANSFORM)).toBe(`${bare}?tr=w-1200`);
+		expect(fullSizeUrl(bare)).not.toContain('tr=');
 	});
 });
